@@ -1,5 +1,7 @@
-#include  %A_ScriptDir%\lib\ws.ahk
-#Persistent
+#include <ws>
+#include <SCI>
+#singleinstance force
+
 NickName := "Server"
 OnExit, ExitRoutine
 
@@ -7,8 +9,10 @@ OnExit, ExitRoutine
 NewConnection := Object()
 
 ; GUI
-	Gui, Server:Add, Edit, w200 h200 vLog HwndLogID
-	Gui, Server:Add, Edit, w200 -WantReturn vGuiMessage -0x100
+	Gui, Server: +LastFound
+    hwnd := WinExist(), sci := new scintilla(hwnd, 10,0,200,200, "", "", a_scriptdir "\lib"), setup_Scintilla(sci)
+    
+	Gui, Server:Add, Edit, y210 w200 -WantReturn vGuiMessage -0x100
 	Gui, Server:Add, Button, Default gSendMessage, Send
 	Gui, Server:Show
 
@@ -29,20 +33,9 @@ SendMessage:
 		return
 	loop % NewConnection.MaxIndex()
 		WS_Send(NewConnection[A_Index], NickName . ": " . GuiMessage)
-	GuiControl, Server:, %LogID%, % Log . "`n" . NickName . ": " . GuiMessage
+    sci.AddText(strLen(str:="`n" NickName ": " GuiMessage), str), sci.ScrollCaret()
 	GuiControl, Server:, GuiMessage
-	autoScroll()	
 return
-
-autoscroll(){
-	Global
-	SendMessage, 0x00BA, 0, 0,, AHK_ID %LogID%  ; EM_GETLINECOUNT
-	LNCount := ErrorLevel - 1
-	SendMessage, 0x00BB, LNCount,,, AHK_ID %LogID%  ; EM_LINEINDEX (Gets index number of line)
-	CaretTo := ErrorLevel
-	SendMessage, 0xB1, CaretTo, CaretTo,, AHK_ID %LogID%
-	SendMessage, 0x00B7, 0, 0,, AHK_ID %LogID%  ; EM_SCROLLCARET
-}
 
 WS_OnAccept(socket){
     global NewConnection
@@ -53,20 +46,22 @@ WS_OnAccept(socket){
 
 ; Send to Multiple clients
 WS_OnRead(socket){
-    global Log, LogID, NewConnection
+    global Log, LogID, NewConnection, sci
 
     WS_Recv(socket, ClientMessage)
 	loop % NewConnection.MaxIndex()
 		if (NewConnection[A_Index] != server)
 			WS_Send(NewConnection[A_Index], ClientMessage)
-	Gui, Server:Submit, NoHide
-	GuiControl, Server:, %LogID%, % Log . "`n" . ClientMessage
-	autoScroll()
+	sci.AddText(strLen(str:="`n" ClientMessage), str), sci.ScrollCaret()
 }
 
 ; Remove client from array
 WS_OnCLose(socket){
 	
+}
+
+setup_Scintilla(sci){
+    sci.SetWrapMode("SC_WRAP_WORD"), sci.SetMarginWidthN("SC_MARGIN_NUMBER", 0)
 }
 
 GuiClose:

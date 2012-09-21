@@ -1,5 +1,4 @@
 ﻿/*
-Title: Socket Lib (Netzwerk) + HowTo
 Author: Bentschi
 Website: http://de.autohotkey.com/forum/viewtopic.php?p=62765#62765
 

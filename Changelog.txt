@@ -13,7 +13,33 @@ Legend:
     $ Disable
 ==================
 
-commit 51f31f948fafbdc4290b635c87d7696c10bc0d46
+commit cf0bace3ee23fac64954f8f624fa6e3804427222
+Author: RaptorX <graptorx@gmail.com>
+Date:   Sat Sep 22 01:31:13 2012 +0200
+
+    ahkMessenger v0.2
+    
+    Changes:
+    
+    + Add Scintilla Component
+    
+    Todo:
+    
+    + Add Highlighting
+
+commit e9558309d2a036d354b9076f572e3f2711205a19
+Author: Abel Gutierrez <abel4@msn.com>
+Date:   Fri Sep 21 15:30:20 2012 -0500
+
+    RM'd Anchor.ahk.
+
+commit 411e31e7af49beb2d9a698b93a1d0067f3f9d2ed
+Author: Abel Gutierrez <abel4@msn.com>
+Date:   Fri Sep 21 15:23:26 2012 -0500
+
+    Added a lib folder and simple resizeable action
+
+commit 7660fac46d324c68ccff8d0d882cd4189c832e07
 Author: RaptorX <graptorx@gmail.com>
 Date:   Fri Sep 21 13:19:32 2012 +0200
 
