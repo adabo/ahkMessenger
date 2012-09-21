@@ -1,4 +1,4 @@
-#include  %A_ScriptDir%\ws.ahk
+#include  %A_ScriptDir%\lib\ws.ahk
 #Persistent
 NickName := "Server"
 OnExit, ExitRoutine

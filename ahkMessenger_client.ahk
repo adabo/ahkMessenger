@@ -2,15 +2,16 @@
 Title: AHK Messenger
 Author: adabo, RaptorX
 */
-#include %A_ScriptDir%\ws.ahk
+#include %A_ScriptDir%\lib\ws.ahk
 #Persistent
 NickName := A_UserName
 OnExit, ExitRoutine
 
 ; GUI
-	Gui, Client: Add, Edit, w200 h200 vLog HwndLogID
-	Gui, Client: Add, Edit, w200 -WantReturn vGuiMessage -0x100
-	Gui, Client: Add, Button, Default gSendMessage, Send
+	Gui, Client:+Resize
+	Gui, Client: Add, Edit, w200 h200 vLog +ReadOnly HwndLogID
+	Gui, Client: Add, Edit, w200 -WantReturn vGuiMessage -0x100 HwndMsgID
+	Gui, Client: Add, Button, Default gSendMessage HwndSendID, Send
 	Gui, Client: Show
 
 ; Initialize
@@ -50,7 +51,13 @@ autoScroll(){
 	SendMessage, 0x00B7, 0, 0,, AHK_ID %LogID%  ; EM_SCROLLCARET
 }
 
-GuiClose:
+ClientGuiSize:
+    GuiControl, MoveDraw, %LogID%, % "w"A_GuiWidth - 20 "h"A_GuiHeight - 80
+    GuiControl, MoveDraw, %MsgID%, % "y"A_GuiHeight - 60 "w"A_GuiWidth - 20
+    GuiControl, MoveDraw, %SendID%, % "y"A_GuiHeight - 24
+return
+
+ClientGuiClose:
 ExitRoutine:
 	WS_CloseSocket(client)
 	WS_Shutdown()
