@@ -1,0 +1,28 @@
+Versioning:
+    Main.Feature.Changes.Bugs
+
+Legend:
+==================
+    + Add
+    - Remove
+    ! Fix
+    * Change
+    ^ Update
+    % Test
+    & Enable
+    $ Disable
+==================
+
+commit 51f31f948fafbdc4290b635c87d7696c10bc0d46
+Author: RaptorX <graptorx@gmail.com>
+Date:   Fri Sep 21 13:19:32 2012 +0200
+
+    ahkMessenger v0.1
+    
+    Changes:
+    
+    ** Initial Commit
+    
+    Todo:
+    
+    ** Initial Commit
