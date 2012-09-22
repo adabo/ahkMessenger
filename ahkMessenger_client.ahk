@@ -13,7 +13,7 @@ OnExit, ExitRoutine
 ; GUI
 
     Gui, CltMain: +LastFound
-    hwnd := WinExist(), sci := new scintilla(hwnd, 10,0,200,200, "", "", a_scriptdir "\lib"), setup_Scintilla(sci)
+    hwnd := WinExist(), sci := new scintilla(hwnd, 10,0,200,200, "", a_scriptdir "\lib"), setup_Scintilla(sci)
     
 	Gui, CltMain: Add, Edit, y210 w200 -WantReturn vGuiMessage -0x100
 	Gui, CltMain: Add, Button, Default gSendMessage, Send
@@ -33,7 +33,7 @@ OnExit, ExitRoutine
 
 ; Port/Socket setup
 	client := WS_Socket("TCP", "IPv4")
-	WS_Connect(client, "99.23.4.199", "12345")
+	WS_Connect(client, "127.0.0.1", "12345")
 	WS_HandleEvents(client, "READ")
 return
 

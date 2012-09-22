@@ -89,9 +89,9 @@ m(var){
                     Full list of Style names can be found at
                     <http://msdn.microsoft.com/en-us/library/ms632600%28v=vs.85%29.aspx>.
 
+    DllPath     -   Path to the SciLexer.dll file, if omitted the function looks for it in *a_scriptdir*.
     MsgHandler  -   Name of the function that will handle the window messages sent by the control.
                     This is very useful for when creating personalized lexing or folding for your control.
-    DllPath     -   Path to the SciLexer.dll file, if omitted the function looks for it in *a_scriptdir*.
 
     Returns:
     HWND - Component handle.
@@ -159,7 +159,7 @@ m(var){
         exitapp
     (end)
 */
-Add(hParent, x=5, y=5, w=590, h=390, Styles="", MsgHandler="", DllPath=""){
+Add(hParent, x=5, y=5, w=590, h=390, Styles="", DllPath="", MsgHandler=""){
     static WS_OVERLAPPED:=0x00000000,WS_POPUP:=0x80000000,WS_CHILD:=0x40000000,WS_MINIMIZE:=0x20000000
     ,WS_VISIBLE:=0x10000000,WS_DISABLED:=0x08000000,WS_CLIPSIBLINGS:=0x04000000,WS_CLIPCHILDREN:=0x02000000
     ,WS_MAXIMIZE:=0x01000000,WS_CAPTION:=0x00C00000,WS_BORDER:=0x00800000,WS_DLGFRAME:=0x00400000
@@ -397,18 +397,9 @@ SCI(var, val=""){
     SCI_DELWORDRIGHTEND:=2518,SCI_VERTICALCENTRECARET:=2619,SCI_MOVESELECTEDLINESUP:=2620,SCI_MOVESELECTEDLINESDOWN:=2621,SCMOD_NORM:=0
     SCMOD_SHIFT:=1,SCMOD_CTRL:=2,SCMOD_ALT:=4
 
-    if instr(var, a_space)    ; if it has spaces we dont need to even check for it being a variable name.
+    if (instr(var, a_space) || instr(var, "`n"))    ; if it has spaces or newlines we dont need to even check for it being a variable name.
         return
         
 	lvar := %var%, val ? %var% := val : null
     return lvar
 }
-
-; textrange(min,max){
- ; VarSetCapacity(text,abs(min-max)),VarSetCapacity(textrange, 12, 0)
- ; NumPut(Min,textrange,0,"UInt")
- ; NumPut(Max,textrange,4,"UInt")
- ; NumPut(&text,textrange,8,"UInt")
- ; sc(2162,0,&textrange)
- ; return strget(&text,abs(min-max),"cp0")
-; }

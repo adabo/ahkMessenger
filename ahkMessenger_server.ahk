@@ -11,7 +11,7 @@ userCodes := Object()
 
 ; GUI
 	Gui, ServMain: +LastFound
-    hwnd := WinExist(), sci := new scintilla(hwnd, 10,0,200,200, "", "", a_scriptdir "\lib"), setup_Scintilla(sci)
+    hwnd := WinExist(), sci := new scintilla(hwnd, 10,0,200,200, "", a_scriptdir "\lib"), setup_Scintilla(sci)
     
 	Gui, ServMain:Add, Edit, y210 w200 -WantReturn vGuiMessage -0x100
 	Gui, ServMain:Add, Button, Default gSendMessage, Send
