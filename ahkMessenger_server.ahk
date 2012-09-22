@@ -7,14 +7,24 @@ OnExit, ExitRoutine
 
 ; Variables/Objects
 NewConnection := Object()
+userCodes := Object()
 
 ; GUI
-	Gui, Server: +LastFound
+	Gui, ServMain: +LastFound
     hwnd := WinExist(), sci := new scintilla(hwnd, 10,0,200,200, "", "", a_scriptdir "\lib"), setup_Scintilla(sci)
     
-	Gui, Server:Add, Edit, y210 w200 -WantReturn vGuiMessage -0x100
-	Gui, Server:Add, Button, Default gSendMessage, Send
-	Gui, Server:Show
+	Gui, ServMain:Add, Edit, y210 w200 -WantReturn vGuiMessage -0x100
+	Gui, ServMain:Add, Button, Default gSendMessage, Send
+	Gui, ServMain: Add, Button, gCodeWin, Code
+	
+	Gui, ServCode: Font, s10, Lucida Console
+	Gui, ServCode: Add, Edit, w400 h400 vGuiCode HwndCodeID
+	Gui, ServCode: Font, s8, Tahoma
+	Gui, ServCode: Add, Button, gSendCode, Send ;Sends to server
+	Gui, ServCode: Add, Button, gRequestCode, Request ;Request other clients code from server
+
+	Gui, ServMain:Show
+
 
 ; Initialize
 	WS_LOGTOCONSOLE := 1
@@ -34,7 +44,22 @@ SendMessage:
 	loop % NewConnection.MaxIndex()
 		WS_Send(NewConnection[A_Index], NickName . ": " . GuiMessage)
     sci.AddText(strLen(str:="`n" NickName ": " GuiMessage), str), sci.ScrollCaret()
-	GuiControl, Server:, GuiMessage
+	GuiControl, ServMain:, GuiMessage
+return
+
+CodeWin:
+	Gui, ServCode: Show
+return
+
+SendCode:
+	Gui, ServCode: Submit, NoHide
+	i++
+	userCodes[i] := GuiCode
+	;WS_Send(client, "CODE||" . GuiCode)
+return
+
+RequestCode:
+	;WS_Send(client, "RQST||")
 return
 
 WS_OnAccept(socket){
@@ -46,13 +71,32 @@ WS_OnAccept(socket){
 
 ; Send to Multiple clients
 WS_OnRead(socket){
-    global Log, LogID, NewConnection, sci
+    global Log, LogID, NewConnection, sci, userCodes, i
 
     WS_Recv(socket, ClientMessage)
-	loop % NewConnection.MaxIndex()
-		if (NewConnection[A_Index] != server)
-			WS_Send(NewConnection[A_Index], ClientMessage)
-	sci.AddText(strLen(str:="`n" ClientMessage), str), sci.ScrollCaret()
+    msgType :=  SubStr(ClientMessage, 1 , 6)
+    StringTrimLeft, ClientMessage, ClientMessage, 6
+
+    if (msgType == "MESG||")
+    {
+		loop % NewConnection.MaxIndex()
+			if (NewConnection[A_Index] != server)
+			{
+				WS_Send(NewConnection[A_Index], ClientMessage)
+			}
+		sci.AddText(strLen(str:="`n" ClientMessage), str), sci.ScrollCaret()
+    }
+    else if (msgType == "RQST||")
+    {
+    	loop % NewConnection.MaxIndex()
+    		if (NewConnection[A_Index] == socket)
+				WS_Send(socket, userCodes[i])
+    }
+    else if (msgType == "CODE||")
+    {
+    	i++
+    	userCodes[i] := ClientMessage
+    }
 }
 
 ; Remove client from array
@@ -64,7 +108,7 @@ setup_Scintilla(sci){
     sci.SetWrapMode("SC_WRAP_WORD"), sci.SetMarginWidthN("SC_MARGIN_NUMBER", 0)
 }
 
-GuiClose:
+ServMainGuiClose:
 ExitRoutine:
 	WS_CloseSocket(NewConnection)
 	WS_CloseSocket(server)
