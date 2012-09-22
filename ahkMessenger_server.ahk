@@ -42,7 +42,7 @@ SendMessage:
 	if (!GuiMessage)
 		return
 	loop % NewConnection.MaxIndex()
-		WS_Send(NewConnection[A_Index], NickName . ": " . GuiMessage)
+		WS_Send(NewConnection[A_Index], "MESG||" . NickName . ": " . GuiMessage)
     sci.AddText(strLen(str:="`n" NickName ": " GuiMessage), str), sci.ScrollCaret()
 	GuiControl, ServMain:, GuiMessage
 return
@@ -82,7 +82,7 @@ WS_OnRead(socket){
 		loop % NewConnection.MaxIndex()
 			if (NewConnection[A_Index] != server)
 			{
-				WS_Send(NewConnection[A_Index], ClientMessage)
+				WS_Send(NewConnection[A_Index], "MESG||" . ClientMessage)
 			}
 		sci.AddText(strLen(str:="`n" ClientMessage), str), sci.ScrollCaret()
     }
@@ -90,7 +90,7 @@ WS_OnRead(socket){
     {
     	loop % NewConnection.MaxIndex()
     		if (NewConnection[A_Index] == socket)
-				WS_Send(socket, userCodes[i])
+				WS_Send(socket, "CODE||" . userCodes[i])
     }
     else if (msgType == "CODE||")
     {

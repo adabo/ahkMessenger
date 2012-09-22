@@ -59,15 +59,30 @@ RequestCode:
 return
 
 WS_OnRead(socket){
-	Global sci
+	Global sci, CodeID
+	
 	WS_Recv(socket, ServerMessage)
-    sci.AddText(strLen(str:="`n" ServerMessage), str), sci.ScrollCaret()
+
+    msgType :=  SubStr(ServerMessage, 1 , 6)
+    StringTrimLeft, ServerMessage, ServerMessage, 6
+
+	if (msgType == "CODE||")
+	{
+		GuiControl, CltCode:, %CodeID%, %ServerMessage%
+	}
+	else if (msgType == "MESG||")
+	{
+    	sci.AddText(strLen(str:="`n" ServerMessage), str), sci.ScrollCaret()
+	}
+	
+
 }
 
 setup_Scintilla(sci){
     sci.SetWrapMode("SC_WRAP_WORD"), sci.SetMarginWidthN("SC_MARGIN_NUMBER", 0)
 }
 
+/*
 CltMainGuiSize:
     GuiControl, MoveDraw, %LogID%, % "w"A_GuiWidth - 20 "h"A_GuiHeight - 80
     GuiControl, MoveDraw, %MsgID%, % "y"A_GuiHeight - 60 "w"A_GuiWidth - 20
@@ -77,6 +92,7 @@ return
 CltCodeGuiClose:
 	Gui, CltCode: Hide
 return
+*/
 
 CltMainGuiClose:
 ExitRoutine:
