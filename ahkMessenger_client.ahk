@@ -19,9 +19,14 @@ OnExit, ExitRoutine
 	Gui, CltMain: Add, Button, Default gSendMessage, Send
 	Gui, CltMain: Add, Button, gCodeWin, Code
 
+	Gui, CltCode: Default
 	Gui, CltCode: Font, s10, Lucida Console
 	Gui, CltCode: Add, Edit, w400 h400 vGuiCode HwndCodeID
-	Gui, CltCode: Add, ListView, x420 y8 w80 h400, Users
+	Gui, CltCode: Add, ListView, x420 y8 w140 h400 -Hdr -Multi, Icon|Users
+	ImageListID := IL_Create(2)
+	LV_SetImageList(ImageListID)
+	IL_Add(ImageListID, "shell32.dll", 209)
+	IL_Add(ImageListID, "shell32.dll", 288)
 	Gui, CltCode: Font, s8, Tahoma
 	Gui, CltCode: Add, Button, x10 gSendCode, Send ;Sends to server
 	Gui, CltCode: Add, Button, x10 gRequestCode, Request ;Request other clients code from server
@@ -64,12 +69,13 @@ RequestCode:
 		msgbox, None selected!
 		return
 	}
-	LV_GetText(reqUserName, rowNum)
+	LV_GetText(reqUserName, rowNum, 2)
 	WS_Send(client, "RQST||" . reqUserName)
 return
 
 WS_OnRead(socket){
-	Global sci, CodeID
+	Global sci, CodeID, NickName
+	static firstVist
 	
 	WS_Recv(socket, ServerMessage)
 
@@ -79,7 +85,20 @@ WS_OnRead(socket){
 	if (msgType == "CODE||")
 	{
 		Gui, CltCode: Default
-		GuiControl, CltCode:, %CodeID%, %ServerMessage%
+		RegexMatch(ServerMessage, "^(.+?)\|\|", match)
+		StringTrimLeft, ServerMessage, ServerMessage, strLen(match1) + 2 ;Get requested name from message
+
+;============== check if name exist in listview ===================;
+		while (match1 != rowText)
+		{
+    		LV_GetText(rowText, A_Index, 2)
+    		if (match1 == rowText) ;Compare username from message to name in listview
+    			LV_Modify(A_Index, "Icon" . 2)
+    	}
+		LV_ModifyCol(1)
+;===================================================================;
+
+	GuiControl, CltCode:, %CodeID%, %ServerMessage%
 	}
 	else if (msgType == "MESG||")
 	{
@@ -88,8 +107,35 @@ WS_OnRead(socket){
 	else if (msgType == "NWCD||")
 	{
     	Gui, CltCode: Default
-		LV_Add("", ServerMessage)
+		if (ServerMessage == NickName)
+		{
+			if (!firstVist)
+			{
+				LV_Add("Icon" . 3, "", ServerMessage) ;The username
+				LV_ModifyCol(1)
+				firstVist++
+			}
+			return
+		}
 
+;============== check if name exist in listview ===================;
+    	loop % LV_GetCount()
+    	{
+    		LV_GetText(rowText, A_Index, 2)
+    		if (ServerMessage == rowText)
+    		{
+    			namExist := True
+    			LV_Modify(A_Index, "Icon" . 1, "")
+    			break
+    		}
+    		else
+    			namExist := False
+    	}
+    	if (!namExist)
+			LV_Add("Icon" . 1, "", ServerMessage)
+;===================================================================;
+
+		LV_ModifyCol(1)
 	}
 }
 
