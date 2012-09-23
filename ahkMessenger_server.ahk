@@ -41,8 +41,8 @@ SendMessage:
 	Gui, Submit, NoHide
 	if (!GuiMessage)
 		return
-	loop % NewConnection.MaxIndex()
-		WS_Send(NewConnection[A_Index], "MESG||" . NickName . ": " . GuiMessage)
+	for key, value in NewConnection
+		WS_Send(NewConnection[key], "MESG||" . NickName . ": " . GuiMessage)
     sci.AddText(strLen(str:="`n" NickName ": " GuiMessage), str), sci.ScrollCaret()
 	GuiControl, ServMain:, GuiMessage
 return
@@ -53,8 +53,7 @@ return
 
 SendCode:
 	Gui, ServCode: Submit, NoHide
-	i++
-	userCodes[i] := GuiCode
+	userCodes[ServerCode] := GuiCode
 	;WS_Send(client, "CODE||" . GuiCode)
 return
 
@@ -63,11 +62,9 @@ RequestCode:
 return
 
 WS_OnAccept(socket){
-    global NewConnection, cnctIndex
-    cnctIndex:=0
-    cnctIndex++
-    NewConnection[cnctIndex] := WS_Accept(socket, client_ip, client_port)
-	;msgbox, % "added: " . NewConnection[cnctIndex] . "`nMaxIndex: " . NewConnection.MaxIndex()
+    global NewConnection
+    userSock := WS_Accept(socket, client_ip, client_port)
+    NewConnection[userSock] := userSock
 }
 
 ; Send to Multiple clients
@@ -80,39 +77,21 @@ WS_OnRead(socket){
 
     if (msgType == "MESG||")
     {
-		loop % NewConnection.MaxIndex()
-			if (NewConnection[A_Index] != server)
-			{
-				WS_Send(NewConnection[A_Index], "MESG||" . ClientMessage)
-			}
+   		for key, value in NewConnection
+			WS_Send(NewConnection[key], "MESG||" . ClientMessage)
 		sci.AddText(strLen(str:="`n" ClientMessage), str), sci.ScrollCaret()
     }
     else if (msgType == "RQST||")
-    {
-    	loop % NewConnection.MaxIndex()
-    		if (NewConnection[A_Index] == socket)
-				WS_Send(socket, "CODE||" . userCodes[i])
-    }
+		WS_Send(socket, "CODE||" . userCodes[socket])
     else if (msgType == "CODE||")
-    {
-    	i++
-    	userCodes[i] := ClientMessage
-    }
+    	userCodes[socket] := ClientMessage
 }
 
 ; Remove client from array
 WS_OnCLose(socket){
-	global NewConnection, cnctIndex
+	global NewConnection
 	loop % NewConnection.MaxIndex()
-	{
-		if (NewConnection[A_Index] == socket)
-		{
-			rmd := NewConnection.Remove(A_Index)
-			cnctIndex--
-			;msgbox, % "Removed: " . rmd . "`nMaxIndex: " . NewConnection.MaxIndex()
-		}
-	}
-
+	NewConnection.Remove(socket, "")
 }
 
 setup_Scintilla(sci){
