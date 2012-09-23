@@ -34,7 +34,7 @@ userCodes := Object()
 	server := WS_Socket("TCP", "IPv4")
 	WS_Bind(server, "0.0.0.0", "12345")
 	WS_Listen(server)
-	WS_HandleEvents(server, "ACCEPT READ")
+	WS_HandleEvents(server, "ACCEPT READ CLOSE")
 return
 
 SendMessage:
@@ -63,10 +63,11 @@ RequestCode:
 return
 
 WS_OnAccept(socket){
-    global NewConnection
-    static var:=0
-    var++
-    NewConnection[var] := WS_Accept(socket, client_ip, client_port)
+    global NewConnection, cnctIndex
+    cnctIndex:=0
+    cnctIndex++
+    NewConnection[cnctIndex] := WS_Accept(socket, client_ip, client_port)
+	;msgbox, % "added: " . NewConnection[cnctIndex] . "`nMaxIndex: " . NewConnection.MaxIndex()
 }
 
 ; Send to Multiple clients
@@ -101,7 +102,17 @@ WS_OnRead(socket){
 
 ; Remove client from array
 WS_OnCLose(socket){
-	
+	global NewConnection, cnctIndex
+	loop % NewConnection.MaxIndex()
+	{
+		if (NewConnection[A_Index] == socket)
+		{
+			rmd := NewConnection.Remove(A_Index)
+			cnctIndex--
+			;msgbox, % "Removed: " . rmd . "`nMaxIndex: " . NewConnection.MaxIndex()
+		}
+	}
+
 }
 
 setup_Scintilla(sci){
