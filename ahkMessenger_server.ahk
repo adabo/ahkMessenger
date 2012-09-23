@@ -1,3 +1,12 @@
+/*
+	Legend:
+		MESG|| = Message
+		NWCD|| = New code
+		USRN|| = User name
+		RQST|| = Request Code
+		USLS|| = User list
+*/
+
 #include <ws>
 #include <SCI>
 #singleinstance force
@@ -14,24 +23,23 @@ serverIP := "999"
 
 ; GUI
 	Gui, ServMain: +LastFound
-    hwnd := WinExist(), sci := new scintilla(hwnd, 10,0,200,200, "", a_scriptdir "\lib"), setup_Scintilla(sci)
-
-	Gui, ServMain: Add, Edit, y210 w200 -WantReturn vGuiMessage -0x100
-	Gui, ServMain: Add, Button, Default gSendMessage, Send
-	Gui, ServMain: Add, Button, gCodeWin, Code
+    hwnd := WinExist(), sci := new scintilla(hwnd, 10,0,400,200, "", a_scriptdir "\lib"), setup_Scintilla(sci)
+    Gui, ServMain: Add, ListView, x420 y6 w120 h198 -Hdr -Multi, Icon|Users
+	Gui, ServMain: Add, Edit, x10 y210 w530 -WantReturn vGuiMessage -0x100
+	Gui, ServMain: Add, Button, x10 Default gSendMessage, Send
+	Gui, ServMain: Add, Button, x10 xp40 yp gCodeWin, Code
 	
 	Gui, ServCode: Default
 	Gui, ServCode: Font, s10, Lucida Console
 	Gui, ServCode: Add, Edit, w400 h400 vGuiCode HwndCodeID
-	Gui, ServCode: Add, ListView, x420 y8 w140 h400 -Hdr -Multi, Icon|Users
+	Gui, ServCode: Add, ListView, x420 y8 w140 h400 -Hdr -Multi gListViewNotifications, Icon|Users
 	ImageListID := IL_Create(2)
 	LV_SetImageList(ImageListID)
-	IL_Add(ImageListID, "shell32.dll", 209)
-	IL_Add(ImageListID, "shell32.dll", 288)
+	IL_Add(ImageListID, "shell32.dll", 71)
+	IL_Add(ImageListID, "shell32.dll", 291)
 
 	Gui, ServCode: Font, s8, Tahoma
 	Gui, ServCode: Add, Button, x10 gSendCode, Send ;Sends to server
-	Gui, ServCode: Add, Button, x10 gRequestCode, Request ;Request other clients code from server
 
 	Gui, ServMain:Show
 
@@ -47,6 +55,11 @@ serverIP := "999"
 	WS_HandleEvents(server, "ACCEPT READ CLOSE")
 	NewConnection[serverIP] := serverIP
     userName[NickName] := serverIP
+    nameFromSocket[999] := "Server"
+
+    Gui, ServMain: Default
+    LV_Add("", "", NickName)
+
 return
 
 SendMessage:
@@ -54,7 +67,8 @@ SendMessage:
 	if (!GuiMessage)
 		return
 	for key, value in NewConnection
-		WS_Send(NewConnection[key], "MESG||" . NickName . ": " . GuiMessage)
+		if (NewConnection[key] != 999)
+			WS_Send(NewConnection[key], "MESG||" . NickName . ": " . GuiMessage)
     sci.AddText(strLen(str:="`n" NickName ": " GuiMessage), str), sci.ScrollCaret()
 	GuiControl, ServMain:, GuiMessage
 return
@@ -82,27 +96,15 @@ SendCode:
 	;WS_Send(client, "NWCD||" . GuiCode)
 return
 
-RequestCode:
-	Gui, ServCode: Default
-	rowNum := LV_GetNext(0, "Focused")
-	if (!rowNum)
+ListViewNotifications:
+	if (A_GuiEvent == "DoubleClick") ;Request code from server with user name
 	{
-		msgbox, None selected!
-		return
+		Gui, ServCode: Default
+		LV_GetText(rowText, A_EventInfo, 2)
+		skt := userName[rowText]
+		GuiControl, ServCode:, %CodeID%, % userCodes[skt]
+		LV_Modify(A_EventInfo, "Icon" . 0)
 	}
-	LV_GetText(reqUserName, rowNum, 2)
-
-	while (reqUserName != rowText)
-	{
-		LV_GetText(rowText, A_Index, 2)
-		if (reqUserName == rowText) ;Compare username from message to name in listview
-			LV_Modify(A_Index, "Icon" . 2)
-	}
-	LV_ModifyCol(1)
-	
-	Gui, ServMain: Default
-	skt := userName[reqUserName]
-	GuiControl, ServCode:, %CodeID%, % userCodes[skt]
 return
 
 WS_OnAccept(socket){
@@ -121,13 +123,28 @@ WS_OnRead(socket){
 
     if (msgType == "USRN||")
     {
+    	nickList := ""
     	userName[ClientMessage] := socket
     	nameFromSocket[socket] := ClientMessage
+	    for key, value in nameFromSocket
+	    	nickList .= value . " "
+	    for key, value in NewConnection
+   			if (key != 999)
+				WS_Send(key, "USLS||" . nickList)
+
+;========Update Server listview main====
+    	Gui, ServMain: Default
+    	Loop, Parse, nickList, %A_Space%
+    		if (A_LoopField != "Server")
+				LV_Add("" ,"", A_LoopField) ;The username
+;=======================================
+
     }
     else if (msgType == "MESG||")
     {
    		for key, value in NewConnection
-			WS_Send(NewConnection[key], "MESG||" . ClientMessage)
+   			if (NewConnection[key] != 999)
+				WS_Send(NewConnection[key], "MESG||" . ClientMessage)
 		sci.AddText(strLen(str:="`n" ClientMessage), str), sci.ScrollCaret()
     }
     else if (msgType == "RQST||")

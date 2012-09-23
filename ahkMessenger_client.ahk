@@ -1,6 +1,13 @@
 /*
 Title: AHK Messenger
 Author: adabo, RaptorX
+
+	Legend:
+		MESG|| = Message
+		NWCD|| = New code
+		USRN|| = User name
+		RQST|| = Request Code
+		USLS|| = User list
 */
 
 #include <ws>
@@ -13,23 +20,22 @@ OnExit, ExitRoutine
 ; GUI
 
     Gui, CltMain: +LastFound
-    hwnd := WinExist(), sci := new scintilla(hwnd, 10,0,200,200, "", a_scriptdir "\lib"), setup_Scintilla(sci)
-    
-	Gui, CltMain: Add, Edit, y210 w200 -WantReturn vGuiMessage -0x100
-	Gui, CltMain: Add, Button, Default gSendMessage, Send
-	Gui, CltMain: Add, Button, gCodeWin, Code
+    hwnd := WinExist(), sci := new scintilla(hwnd, 10,0,400,200, "", a_scriptdir "\lib"), setup_Scintilla(sci)
+	Gui, CltMain: Add, ListView, x420 y6 w120 h198 -Hdr -Multi, Icon|Users
+	Gui, CltMain: Add, Edit, x10 y210 w530 -WantReturn vGuiMessage -0x100
+	Gui, CltMain: Add, Button, x10 Default gSendMessage, Send
+	Gui, CltMain: Add, Button, x10 xp40 yp gCodeWin, Code
 
 	Gui, CltCode: Default
 	Gui, CltCode: Font, s10, Lucida Console
 	Gui, CltCode: Add, Edit, w400 h400 vGuiCode HwndCodeID
-	Gui, CltCode: Add, ListView, x420 y8 w140 h400 -Hdr -Multi, Icon|Users
+	Gui, CltCode: Add, ListView, x420 y8 w140 h400 -Hdr -Multi gListViewNotifications, Icon|Users
 	ImageListID := IL_Create(2)
 	LV_SetImageList(ImageListID)
-	IL_Add(ImageListID, "shell32.dll", 209)
-	IL_Add(ImageListID, "shell32.dll", 288)
+	IL_Add(ImageListID, "shell32.dll", 71)
+	IL_Add(ImageListID, "shell32.dll", 291)
 	Gui, CltCode: Font, s8, Tahoma
 	Gui, CltCode: Add, Button, x10 gSendCode, Send ;Sends to server
-	Gui, CltCode: Add, Button, x10 gRequestCode, Request ;Request other clients code from server
 
 	Gui, CltMain: Show
 
@@ -61,16 +67,14 @@ SendCode:
 	WS_Send(client, "NWCD||" . GuiCode)
 return
 
-RequestCode:
-	Gui, CltCode: Default
-	rowNum := LV_GetNext(0, "Focused")
-	if (!rowNum)
+ListViewNotifications:
+	if (A_GuiEvent == "DoubleClick")
 	{
-		msgbox, None selected!
-		return
+		Gui, CltCode: Default
+		rowNum := LV_GetNext(0, "Focused")
+		LV_GetText(reqUserName, rowNum, 2)
+		WS_Send(client, "RQST||" . reqUserName)
 	}
-	LV_GetText(reqUserName, rowNum, 2)
-	WS_Send(client, "RQST||" . reqUserName)
 return
 
 WS_OnRead(socket){
@@ -82,7 +86,13 @@ WS_OnRead(socket){
     msgType :=  SubStr(ServerMessage, 1 , 6)
     StringTrimLeft, ServerMessage, ServerMessage, 6
 
-	if (msgType == "CODE||")
+    if (msgTYpe == "USLS||")
+    {
+    	Gui, CltMain: Default
+    	Loop, Parse, ServerMessage, %A_Space%
+			LV_Add("" ,"", A_LoopField) ;The username
+    }
+	else if (msgType == "CODE||")
 	{
 		Gui, CltCode: Default
 		RegexMatch(ServerMessage, "^(.+?)\|\|", match)
@@ -93,7 +103,7 @@ WS_OnRead(socket){
 		{
     		LV_GetText(rowText, A_Index, 2)
     		if (match1 == rowText) ;Compare username from message to name in listview
-    			LV_Modify(A_Index, "Icon" . 2)
+    			LV_Modify(A_Index, "Icon" . 3)
     	}
 		LV_ModifyCol(1)
 ;===================================================================;
@@ -107,11 +117,11 @@ WS_OnRead(socket){
 	else if (msgType == "NWCD||")
 	{
     	Gui, CltCode: Default
-		if (ServerMessage == NickName)
+		if (ServerMessage == NickName) ;Do not add icon to Own Nickname
 		{
 			if (!firstVist)
 			{
-				LV_Add("Icon" . 3, "", ServerMessage) ;The username
+				LV_Add("Icon" . 0, "", ServerMessage) ;The username
 				LV_ModifyCol(1)
 				firstVist++
 			}
