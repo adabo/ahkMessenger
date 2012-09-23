@@ -8,20 +8,24 @@ OnExit, ExitRoutine
 ; Variables/Objects
 NewConnection := Object()
 userCodes := Object()
+userName := Object()
+nameFromSocket := Object()
+serverIP := "999"
 
 ; GUI
 	Gui, ServMain: +LastFound
     hwnd := WinExist(), sci := new scintilla(hwnd, 10,0,200,200, "", a_scriptdir "\lib"), setup_Scintilla(sci)
     
-	Gui, ServMain:Add, Edit, y210 w200 -WantReturn vGuiMessage -0x100
-	Gui, ServMain:Add, Button, Default gSendMessage, Send
+	Gui, ServMain: Add, Edit, y210 w200 -WantReturn vGuiMessage -0x100
+	Gui, ServMain: Add, Button, Default gSendMessage, Send
 	Gui, ServMain: Add, Button, gCodeWin, Code
 	
 	Gui, ServCode: Font, s10, Lucida Console
 	Gui, ServCode: Add, Edit, w400 h400 vGuiCode HwndCodeID
+	Gui, ServCode: Add, ListView, x420 y8 w80 h400, Users
 	Gui, ServCode: Font, s8, Tahoma
-	Gui, ServCode: Add, Button, gSendCode, Send ;Sends to server
-	Gui, ServCode: Add, Button, gRequestCode, Request ;Request other clients code from server
+	Gui, ServCode: Add, Button, x10 gSendCode, Send ;Sends to server
+	Gui, ServCode: Add, Button, x10 gRequestCode, Request ;Request other clients code from server
 
 	Gui, ServMain:Show
 
@@ -35,6 +39,8 @@ userCodes := Object()
 	WS_Bind(server, "0.0.0.0", "12345")
 	WS_Listen(server)
 	WS_HandleEvents(server, "ACCEPT READ CLOSE")
+	NewConnection[serverIP] := serverIP
+    userName[NickName] := serverIP
 return
 
 SendMessage:
@@ -53,12 +59,29 @@ return
 
 SendCode:
 	Gui, ServCode: Submit, NoHide
-	userCodes[ServerCode] := GuiCode
-	;WS_Send(client, "CODE||" . GuiCode)
+	userCodes[serverIP] := GuiCode
+	Gui, ServCode: Default
+	LV_Add("", NickName)
+	for key, value in NewConnection
+		if (NewConnection[key] != 999)
+			WS_Send(NewConnection[key], "NWCD||" . NickName)
+	;WS_Send(client, "NWCD||" . GuiCode)
 return
 
 RequestCode:
-	;WS_Send(client, "RQST||")
+	Gui, ServCode: Default
+	rowNum := LV_GetNext(0, "Focused")
+	if (!rowNum)
+	{
+		msgbox, None selected!
+		return
+	}
+	LV_GetText(reqUserName, rowNum)
+
+	
+	skt := userName[reqUserName]
+	;msgbox, % userCodes[skt]
+	GuiControl, ServCode:, %CodeID%, % userCodes[skt]
 return
 
 WS_OnAccept(socket){
@@ -69,22 +92,44 @@ WS_OnAccept(socket){
 
 ; Send to Multiple clients
 WS_OnRead(socket){
-    global Log, LogID, NewConnection, sci, userCodes, i
+    global Log, LogID, NewConnection, sci, userCodes, userName, nameFromSocket
 
     WS_Recv(socket, ClientMessage)
     msgType :=  SubStr(ClientMessage, 1 , 6)
     StringTrimLeft, ClientMessage, ClientMessage, 6
 
-    if (msgType == "MESG||")
+    if (msgType == "USRN||")
+    {
+    	userName[ClientMessage] := socket
+    	nameFromSocket[socket] := ClientMessage
+    }
+    else if (msgType == "MESG||")
     {
    		for key, value in NewConnection
 			WS_Send(NewConnection[key], "MESG||" . ClientMessage)
 		sci.AddText(strLen(str:="`n" ClientMessage), str), sci.ScrollCaret()
     }
     else if (msgType == "RQST||")
-		WS_Send(socket, "CODE||" . userCodes[socket])
-    else if (msgType == "CODE||")
+    {
+        skt := userName[ClientMessage]
+		WS_Send(socket, "CODE||" . userCodes[skt])
+    }
+    else if (msgType == "CODE||")  ; For Server GUI ONLY
+    {
+    	Gui, CltCode: Default
+		GuiControl, SrvCode:, %CodeID%, %ClientMessage%
+    }
+    else if (msgType == "NWCD||")
+    {
     	userCodes[socket] := ClientMessage
+    	for key, value in NewConnection
+    		if (NewConnection[key] != 999)
+    			WS_Send(NewConnection[key], "NWCD||" . nameFromSocket[socket])
+
+    	;Update Server code window ListView
+    	Gui, ServCode: Default
+		LV_Add("", nameFromSocket[socket])
+    }
 }
 
 ; Remove client from array

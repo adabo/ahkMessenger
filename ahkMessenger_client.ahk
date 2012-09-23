@@ -21,9 +21,10 @@ OnExit, ExitRoutine
 
 	Gui, CltCode: Font, s10, Lucida Console
 	Gui, CltCode: Add, Edit, w400 h400 vGuiCode HwndCodeID
+	Gui, CltCode: Add, ListView, x420 y8 w80 h400, Users
 	Gui, CltCode: Font, s8, Tahoma
-	Gui, CltCode: Add, Button, gSendCode, Send ;Sends to server
-	Gui, CltCode: Add, Button, gRequestCode, Request ;Request other clients code from server
+	Gui, CltCode: Add, Button, x10 gSendCode, Send ;Sends to server
+	Gui, CltCode: Add, Button, x10 gRequestCode, Request ;Request other clients code from server
 
 	Gui, CltMain: Show
 
@@ -35,6 +36,7 @@ OnExit, ExitRoutine
 	client := WS_Socket("TCP", "IPv4")
 	WS_Connect(client, "127.0.0.1", "12345")
 	WS_HandleEvents(client, "READ")
+	WS_Send(client, "USRN||" . NickName)
 return
 
 CodeWin:
@@ -51,11 +53,19 @@ return
 
 SendCode:
 	Gui, CltCode: Submit, NoHide
-	WS_Send(client, "CODE||" . GuiCode)
+	WS_Send(client, "NWCD||" . GuiCode)
 return
 
 RequestCode:
-	WS_Send(client, "RQST||")
+	Gui, CltCode: Default
+	rowNum := LV_GetNext(0, "Focused")
+	if (!rowNum)
+	{
+		msgbox, None selected!
+		return
+	}
+	LV_GetText(reqUserName, rowNum)
+	WS_Send(client, "RQST||" . reqUserName)
 return
 
 WS_OnRead(socket){
@@ -68,14 +78,19 @@ WS_OnRead(socket){
 
 	if (msgType == "CODE||")
 	{
+		Gui, CltCode: Default
 		GuiControl, CltCode:, %CodeID%, %ServerMessage%
 	}
 	else if (msgType == "MESG||")
 	{
     	sci.AddText(strLen(str:="`n" ServerMessage), str), sci.ScrollCaret()
 	}
-	
+	else if (msgType == "NWCD||")
+	{
+    	Gui, CltCode: Default
+		LV_Add("", ServerMessage)
 
+	}
 }
 
 setup_Scintilla(sci){
