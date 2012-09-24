@@ -14,7 +14,7 @@ Author: adabo, RaptorX
 #include <SCI>
 #include <chatGUI>
 #singleinstance force
-test := true
+; test := true
 
 NickName := A_UserName
 OnExit, ExitRoutine
@@ -67,7 +67,7 @@ WS_OnRead(socket){
 		LV_ModifyCol(1)
 ;===================================================================;
 
-	GuiControl, CltCode:, %CodeID%, %ServerMessage%
+    sci[2].AddText(strLen(str:=ServerMessage), str), sci[2].ScrollCaret()
 	}
 	else if (msgType == "MESG||")
 	{

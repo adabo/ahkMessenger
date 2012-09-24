@@ -126,8 +126,8 @@ CreateServerGui(){
         {
             Gui, ServCode: Default
             LV_GetText(rowText, A_EventInfo, 2)
-            skt := userName[rowText]
-            GuiControl, ServCode:, %CodeID%, % userCodes[skt]
+            skt := userName[rowText]            
+            sci[2].AddText(strLen(str:=userCodes[skt]), str), sci[2].ScrollCaret()
             LV_Modify(A_EventInfo, "Icon" . 0)
         }
     return
