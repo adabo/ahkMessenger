@@ -20,23 +20,29 @@ OnExit, ExitRoutine
 ; GUI
 
     Gui, CltMain: +LastFound
-    hwnd := WinExist(), sci := new scintilla(hwnd, 10,0,400,200, "", a_scriptdir "\lib"), setup_Scintilla(sci, NickName)
+    hwnd := WinExist(), sci := {} ; Scintilla Editor Array
+    sci[1] := new scintilla(hwnd, 10,0,400,200, "", a_scriptdir "\lib")
+    
 	Gui, CltMain: Add, ListView, x420 y6 w120 h198 -Hdr -Multi, Icon|Users
 	Gui, CltMain: Add, Edit, x10 y210 w530 -WantReturn vGuiMessage -0x100
 	Gui, CltMain: Add, Button, x10 Default gSendMessage, Send
 	Gui, CltMain: Add, Button, x10 xp40 yp gCodeWin, Code
 
 	Gui, CltCode: Default
+	Gui, CltCode: +LastFound
+    hwnd := WinExist(), sci[2] := new scintilla(hwnd, 0,0,400,400,"hidden", a_scriptdir "\lib") 
+    
 	Gui, CltCode: Font, s10, Lucida Console
-	Gui, CltCode: Add, Edit, w400 h400 vGuiCode HwndCodeID
+	; Gui, CltCode: Add, Edit, w400 h400 vGuiCode HwndCodeID
 	Gui, CltCode: Add, ListView, x420 y8 w140 h400 -Hdr -Multi gListViewNotifications, Icon|Users
 	ImageListID := IL_Create(2)
 	LV_SetImageList(ImageListID)
 	IL_Add(ImageListID, "shell32.dll", 71)
 	IL_Add(ImageListID, "shell32.dll", 291)
 	Gui, CltCode: Font, s8, Tahoma
-	Gui, CltCode: Add, Button, x10 gSendCode, Send ;Sends to server
+	Gui, CltCode: Add, Button, x10 y410 gSendCode, Send ;Sends to server
 
+    setup_Scintilla(sci, NickName)
 	Gui, CltMain: Show
 
 ; Initialize
@@ -45,12 +51,13 @@ OnExit, ExitRoutine
     
 ; Port/Socket setup
 	client := WS_Socket("TCP", "IPv4")
-	WS_Connect(client, "127.0.0.1", "12345")
+	WS_Connect(client, "99.23.4.199", "12345")
 	WS_HandleEvents(client, "READ")
 	WS_Send(client, "USRN||" . NickName)
 return
 
 CodeWin:
+    Control,Show,,, % "ahk_id " sci[2].hwnd
 	Gui, CltCode: Show
 return
 
@@ -163,16 +170,57 @@ WS_OnRead(socket){
 
 setup_Scintilla(sci, localNick=""){
 
-    sci.SetWrapMode("SC_WRAP_WORD"), sci.SetMarginWidthN("SC_MARGIN_NUMBER", 0), sci.SetLexer(2)
-    sci.StyleSetBold("STYLE_DEFAULT", true), sci.StyleClearAll()
+    ;{ sci[1] Configuration
+    sci[1].SetWrapMode("SC_WRAP_WORD"), sci[1].SetMarginWidthN(1, 0), sci[1].SetLexer(2)
+    sci[1].StyleSetBold("STYLE_DEFAULT", true), sci[1].StyleClearAll()
     
-    sci.SetKeywords(0,localNick)
+    sci[1].SetKeywords(0,localNick)
 
-    sci.StyleSetFore(0,0x000000), sci.StyleSetBold(0, false)    ; SCE_MSG_DEFAULT
-    sci.StyleSetFore(1,0xFF0000)                                ; SCE_MSG_LOCALNICK
-    sci.StyleSetFore(2,0x0000FF)                                ; SCE_MSG_OTHERNICK
-    sci.StyleSetFore(3,0x0E0E0E), sci.StyleSetBold(3, false)    ; SCE_MSG_INFOMESSAGE
+    sci[1].StyleSetFore(0,0x000000), sci[1].StyleSetBold(0, false)      ; SCE_MSG_DEFAULT
+    sci[1].StyleSetFore(1,0xFF0000)                                     ; SCE_MSG_LOCALNICK
+    sci[1].StyleSetFore(2,0x0000FF)                                     ; SCE_MSG_OTHERNICK
+    sci[1].StyleSetFore(3,0x0E0E0E), sci[1].StyleSetBold(3, false)      ; SCE_MSG_INFOMESSAGE
+    ;}
     
+    ;{ sci[2] Configuration
+    sci[2].SetWrapMode("SC_WRAP_WORD"), sci[2].SetMarginWidthN(0, 40), sci[2].SetMarginWidthN(1, 0), sci[2].SetLexer(3)
+    sci[2].StyleSetBold("STYLE_DEFAULT", true), sci[2].StyleClearAll()
+    
+    
+    sci[2].SetKeywords(0,"controlflow")
+    sci[2].SetKeywords(1,"commands")
+    sci[2].SetKeywords(2,"functions")
+    sci[2].SetKeywords(3,"directives")
+    sci[2].SetKeywords(4,"keysbuttons")
+    sci[2].SetKeywords(5,"variables")
+    sci[2].SetKeywords(6,"specialparams")
+    sci[2].SetKeywords(7,"userdefined")
+    
+    sci[2].StyleSetBold("STYLE_LINENUMBER", false)
+    
+    sci[2].StyleSetFore(0,0x000000), sci[2].StyleSetBold(0, false)      ; SCE_AHK_DEFAULT
+    sci[2].StyleSetFore(1,0x00FF00)                                     ; SCE_AHK_COMMENTLINE
+    sci[2].StyleSetFore(2,0x00FF00)                                     ; SCE_AHK_COMMENTBLOCK
+    sci[2].StyleSetFore(3,0xFF0000)                                     ; SCE_AHK_ESCAPE
+    sci[2].StyleSetFore(4,0x000080), sci[2].StyleSetBold(4, false)      ; SCE_AHK_SYNOPERATOR
+    sci[2].StyleSetFore(5,0x000080), sci[2].StyleSetBold(5, false)      ; SCE_AHK_EXPOPERATOR
+    sci[2].StyleSetFore(6,0xA2A2A2), sci[2].StyleSetBold(6, false)      ; SCE_AHK_STRING
+    sci[2].StyleSetFore(7,0xFF9000), sci[2].StyleSetBold(7, false)      ; SCE_AHK_NUMBER
+    sci[2].StyleSetFore(8,0xFF9000), sci[2].StyleSetBold(8, false)      ; SCE_AHK_IDENTIFIER
+    sci[2].StyleSetFore(9,0XFF9000), sci[2].StyleSetBold(9, false)      ; SCE_AHK_VARREF
+    sci[2].StyleSetFore(10,0x0000FF)                                    ; SCE_AHK_LABEL
+    sci[2].StyleSetFore(11,0x0000FF)                                    ; SCE_AHK_WORD_CF
+    sci[2].StyleSetFore(12,0x0000FF)                                    ; SCE_AHK_WORD_CMD
+    sci[2].StyleSetFore(13,0xFF0090)                                    ; SCE_AHK_WORD_FN
+    sci[2].StyleSetFore(14,0xA50000)                                    ; SCE_AHK_WORD_DIR
+    sci[2].StyleSetFore(15,0xA2A2A2),sci[2].StyleSetItalic(15, true)    ; SCE_AHK_WORD_KB
+    sci[2].StyleSetFore(16,0xFF9000)                                    ; SCE_AHK_WORD_VAR
+    sci[2].StyleSetFore(17,0x0000FF)                                    ; SCE_AHK_WORD_SP
+    sci[2].StyleSetFore(18,0x00F000)                                    ; SCE_AHK_WORD_UD
+    sci[2].StyleSetFore(19,0xFF9000)                                    ; SCE_AHK_VARREFKW
+    sci[2].StyleSetFore(20,0xFF0000)                                    ; SCE_AHK_ERROR
+    
+    ;}
     return 0
 }
 

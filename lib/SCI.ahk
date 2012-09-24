@@ -397,5 +397,7 @@ SCI(var, val=""){
         return                                                      ; we dont need to even check for it being a variable name.
 
 	lvar := %var%, val ? %var% := val : null
+    if (var = "SC_MARGIN_SYMBOL")
+        msgbox % lvar " " var
     return lvar
 }
