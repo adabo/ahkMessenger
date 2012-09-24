@@ -138,6 +138,7 @@ WS_OnRead(socket){
         
 ;========Update Server listview main====
     	Gui, ServMain: Default
+    	lV_Delete()
     	Loop, Parse, nickList, %A_Space%
     		if (A_LoopField != "Server")
 				LV_Add("" ,"", A_LoopField) ;The username
@@ -196,7 +197,7 @@ WS_OnCLose(socket){
 		}
 
 	for key, value in NewConnection
-		if (!999)
+		if (NewConnection[key] != 999)
 			WS_Send(value, "DISC||" . nameFromSocket[socket])
 
 	userCodes.Remove(socket, "")

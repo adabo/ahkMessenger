@@ -89,6 +89,7 @@ WS_OnRead(socket){
     if (msgTYpe == "USLS||")
     {
     	Gui, CltMain: Default
+    	lV_Delete()
     	Loop, Parse, ServerMessage, %A_Space%
 			LV_Add("" ,"", A_LoopField) ;The username
         StringReplace, nickList, ServerMessage, %NickName%%a_space%,,A
