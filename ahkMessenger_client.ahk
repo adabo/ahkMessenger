@@ -67,7 +67,7 @@ WS_OnRead(socket){
 		LV_ModifyCol(1)
 ;===================================================================;
 
-    sci[2].AddText(strLen(str:=ServerMessage), str), sci[2].ScrollCaret()
+    sci[2].ClearAll(), sci[2].AddText(strLen(str:=ServerMessage), str), sci[2].ScrollCaret()
 	}
 	else if (msgType == "MESG||")
 	{

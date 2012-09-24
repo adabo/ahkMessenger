@@ -41,7 +41,7 @@
     return
 
     cSendCode:
-        Gui, CltCode: Submit, NoHide
+        sci[2].GetText(sci[2].GetLength()+1, GuiCode)
         WS_Send(client, "NWCD||" . GuiCode)
     return
 
@@ -103,7 +103,7 @@ CreateServerGui(){
     return
 
     sSendCode:
-        Gui, ServCode: Submit, NoHide
+        sci[2].GetText(sci[2].GetLength()+1, GuiCode)
         userCodes[serverIP] := GuiCode
         Gui, ServCode: Default
 
@@ -118,7 +118,6 @@ CreateServerGui(){
         for key, value in NewConnection
             if (NewConnection[key] != 999)
                 WS_Send(NewConnection[key], "NWCD||" . NickName)
-        ;WS_Send(client, "NWCD||" . GuiCode)
     return
 
     sListViewNotifications:
@@ -127,7 +126,7 @@ CreateServerGui(){
             Gui, ServCode: Default
             LV_GetText(rowText, A_EventInfo, 2)
             skt := userName[rowText]            
-            sci[2].AddText(strLen(str:=userCodes[skt]), str), sci[2].ScrollCaret()
+            sci[2].ClearAll(), sci[2].AddText(strLen(str:=userCodes[skt]), str), sci[2].ScrollCaret()
             LV_Modify(A_EventInfo, "Icon" . 0)
         }
     return
