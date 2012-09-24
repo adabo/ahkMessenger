@@ -18,7 +18,7 @@ class scintilla {
               I decided to make most of those operations internally to have cleaner code later on.
             */
 
-            (msg = "GetText") ? (VarSetCapacity(lParam, wParam * (a_isunicode ? 2 : 1)), lParam := &lParam, buf:=true) : null
+            (msg = "GetText") ? (VarSetCapacity(lParam, wParam), lParam := &lParam, buf:=true) : null
             (msg = "GetLine") ? (VarSetCapacity(lParam, this.linelength(wParam)+1 * (a_isunicode ? 2 : 1)), lParam := &lParam, buf:=true) : null
             (msg = "GetTextRange") ? (range:=abs(wParam.1 - wParam.2)+1, dSize :=  sendEditor(this.hwnd, "GetLength")
                                       ,VarSetCapacity(lParam, range > dSize ? (dSize, wParam.2 := dSize) : range)
