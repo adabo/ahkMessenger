@@ -44,12 +44,17 @@ WS_OnRead(socket){
 
     if (msgTYpe == "USLS||")
     {
+
+    	RegexMatch(ServerMessage, "^(.+?)\|\|", match)
+        StringTrimLeft, ServerMessage, ServerMessage, 6
+    	
     	Gui, CltMain: Default
     	lV_Delete()
     	Loop, Parse, ServerMessage, %A_Space%
 			LV_Add("" ,"", A_LoopField) ;The username
         StringReplace, nickList, ServerMessage, %NickName%%a_space%,,A
         sci[1].SetKeywords(1,nickList)
+        sci[1].AddText(strLen(str := match1 . " has connected.`n"), str), sci.ScrollCaret()
     }
 	else if (msgType == "CODE||")
 	{
@@ -57,7 +62,7 @@ WS_OnRead(socket){
 		RegexMatch(ServerMessage, "^(.+?)\|\|", match)
 		StringTrimLeft, ServerMessage, ServerMessage, strLen(match1) + 2 ;Get requested name from message
 
-;============== check if name exist in listview ===================;
+		;============== check if name exist in listview ===================;
 		while (match1 != rowText)
 		{
     		LV_GetText(rowText, A_Index, 2)
@@ -65,9 +70,9 @@ WS_OnRead(socket){
     			LV_Modify(A_Index, "Icon" . 3)
     	}
 		LV_ModifyCol(1)
-;===================================================================;
+		;===================================================================;
 
-    sci[2].ClearAll(), sci[2].AddText(strLen(str:=ServerMessage), str), sci[2].ScrollCaret()
+	    sci[2].ClearAll(), sci[2].AddText(strLen(str:=ServerMessage), str), sci[2].ScrollCaret()
 	}
 	else if (msgType == "MESG||")
 	{
@@ -87,7 +92,7 @@ WS_OnRead(socket){
 			return
 		}
 
-;============== check if name exist in listview ===================;
+		;============== check if name exist in listview ===================;
     	loop % LV_GetCount()
     	{
     		LV_GetText(rowText, A_Index, 2)
@@ -102,9 +107,12 @@ WS_OnRead(socket){
     	}
     	if (!namExist)
 			LV_Add("Icon" . 1, "", ServerMessage)
-;===================================================================;
+
+
+		;===================================================================;
 
 		LV_ModifyCol(1)
+		sci[1].AddText(strLen(str:= "Notice: New code from: """ . ServerMessage . """"), str)
 	}
 	else if (msgType == "DISC||")
 	{

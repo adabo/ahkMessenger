@@ -21,7 +21,7 @@ NewConnection := Object()
 userCodes := Object()
 userName := Object()
 nameFromSocket := Object()
-serverIP := "999"
+serverIP := "000"
 
 ; GUI
 	CreateServerGui()
@@ -37,13 +37,12 @@ serverIP := "999"
 	WS_HandleEvents(server, "ACCEPT READ CLOSE")
 	NewConnection[serverIP] := serverIP
     userName[NickName] := serverIP
-    nameFromSocket[999] := "Server"
+    nameFromSocket[000] := "Server"
 
     Gui, ServMain: Default
     LV_Add("", "", NickName)
 
 return
-
 
 WS_OnAccept(socket){
     global NewConnection
@@ -67,25 +66,25 @@ WS_OnRead(socket){
 	    	nickList .= value . " "
 	    ;msgbox, %nickList%
 	    for key, value in NewConnection
-   			if (key != 999)
-				WS_Send(key, "USLS||" . nickList)
+   			if (key != 000)
+				WS_Send(key, "USLS||" . nameFromSocket[socket] . "||" . nickList)
         
         StringReplace, nickList, nickList, %NickName%%a_space%,,A
         sci[1].SetKeywords(1,nl:=nickList)
         
-;========Update Server listview main====
+        ;========Update Server listview main====
     	Gui, ServMain: Default
     	lV_Delete()
     	Loop, Parse, nickList, %A_Space%
     		if (A_LoopField != "Server")
 				LV_Add("" ,"", A_LoopField) ;The username
-;=======================================
+        ;=======================================
 
     }
     else if (msgType == "MESG||")
     {
    		for key, value in NewConnection
-   			if (NewConnection[key] != 999)
+   			if (NewConnection[key] != 000)
 				WS_Send(NewConnection[key], "MESG||" . ClientMessage)
 		sci[1].AddText(strLen(str:=ClientMessage "`n"), str), sci[1].ScrollCaret()
     }
@@ -98,10 +97,10 @@ WS_OnRead(socket){
     {
     	userCodes[socket] := ClientMessage
     	for key, value in NewConnection
-    		if (NewConnection[key] != 999)
+    		if (NewConnection[key] != 000)
     			WS_Send(NewConnection[key], "NWCD||" . nameFromSocket[socket])
 
-;=========== Update Server code window ListView ===================;
+        ;=========== Update Server code window ListView ===================;
     	Gui, ServCode: Default
     	loop % LV_GetCount()
     	{
@@ -117,7 +116,7 @@ WS_OnRead(socket){
     	}
     	if (!namExist)
 			LV_Add("Icon" . 1,"", nameFromSocket[socket])
-;===================================================================;
+        ;===================================================================;
     }
 }
 
@@ -134,7 +133,7 @@ WS_OnCLose(socket){
 		}
 
 	for key, value in NewConnection
-		if (NewConnection[key] != 999)
+		if (NewConnection[key] != 000)
 			WS_Send(value, "DISC||" . nameFromSocket[socket])
 
 	userCodes.Remove(socket, "")
