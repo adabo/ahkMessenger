@@ -111,9 +111,7 @@ WS_OnRead(socket){
 	GuiControl, CltCode:, %CodeID%, %ServerMessage%
 	}
 	else if (msgType == "MESG||")
-	{
     	sci.AddText(strLen(str:="`n" ServerMessage), str), sci.ScrollCaret()
-	}
 	else if (msgType == "NWCD||")
 	{
     	Gui, CltCode: Default
@@ -147,23 +145,21 @@ WS_OnRead(socket){
 
 		LV_ModifyCol(1)
 	}
+	else if (msgType == "DISC||")
+	{
+		Gui, CltMain: Default
+		loop % LV_GetCount()
+		{
+			LV_GetText(nm, A_Index, 2)
+				if (nm == ServerMessage)
+					lV_Delete(A_Index)
+		}
+	}
 }
 
 setup_Scintilla(sci){
     sci.SetWrapMode("SC_WRAP_WORD"), sci.SetMarginWidthN("SC_MARGIN_NUMBER", 0)
 }
-
-/*
-CltMainGuiSize:
-    GuiControl, MoveDraw, %LogID%, % "w"A_GuiWidth - 20 "h"A_GuiHeight - 80
-    GuiControl, MoveDraw, %MsgID%, % "y"A_GuiHeight - 60 "w"A_GuiWidth - 20
-    GuiControl, MoveDraw, %SendID%, % "y"A_GuiHeight - 24
-return
-
-CltCodeGuiClose:
-	Gui, CltCode: Hide
-return
-*/
 
 CltMainGuiClose:
 ExitRoutine:

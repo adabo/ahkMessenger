@@ -5,6 +5,7 @@
 		USRN|| = User name
 		RQST|| = Request Code
 		USLS|| = User list
+		DISC|| = User Disconnected
 */
 
 #include <ws>
@@ -123,11 +124,11 @@ WS_OnRead(socket){
 
     if (msgType == "USRN||")
     {
-    	nickList := ""
     	userName[ClientMessage] := socket
     	nameFromSocket[socket] := ClientMessage
 	    for key, value in nameFromSocket
 	    	nickList .= value . " "
+	    ;msgbox, %nickList%
 	    for key, value in NewConnection
    			if (key != 999)
 				WS_Send(key, "USLS||" . nickList)
@@ -181,9 +182,24 @@ WS_OnRead(socket){
 
 ; Remove client from array
 WS_OnCLose(socket){
-	global NewConnection
-	loop % NewConnection.MaxIndex()
+	global NewConnection, userCodes, userName, nameFromSocket
+
+		Gui, ServMain: Default
+		loop % LV_GetCount()
+		{
+			LV_GetText(nm, A_Index, 2)
+			if (nameFromSocket[socket] == nm)
+				lV_Delete(A_Index)
+		}
+
+	for key, value in NewConnection
+		if (!999)
+			WS_Send(value, "DISC||" . nameFromSocket[socket])
+
+	userCodes.Remove(socket, "")
+	userName.Remove(nameFromSocket[socket])
 	NewConnection.Remove(socket, "")
+	nameFromSocket.Remove(socket, "")
 }
 
 setup_Scintilla(sci){
