@@ -207,7 +207,7 @@ WS_OnCLose(socket){
 
 setup_Scintilla(sci, localNick=""){
 
-    sci.SetWrapMode("SC_WRAP_WORD"), sci.SetMarginWidthN("SC_MARGIN_NUMBER", 0), sci.SetLexer(108)
+    sci.SetWrapMode("SC_WRAP_WORD"), sci.SetMarginWidthN("SC_MARGIN_NUMBER", 0), sci.SetLexer(2)
     sci.StyleSetBold("STYLE_DEFAULT", true), sci.StyleClearAll()
     
     sci.SetKeywords(0,localNick)
