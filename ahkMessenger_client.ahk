@@ -20,7 +20,7 @@ OnExit, ExitRoutine
 ; GUI
 
     Gui, CltMain: +LastFound
-    hwnd := WinExist(), sci := new scintilla(hwnd, 10,0,400,200, "", a_scriptdir "\lib"), setup_Scintilla(sci)
+    hwnd := WinExist(), sci := new scintilla(hwnd, 10,0,400,200, "", a_scriptdir "\lib"), setup_Scintilla(sci, NickName)
 	Gui, CltMain: Add, ListView, x420 y6 w120 h198 -Hdr -Multi, Icon|Users
 	Gui, CltMain: Add, Edit, x10 y210 w530 -WantReturn vGuiMessage -0x100
 	Gui, CltMain: Add, Button, x10 Default gSendMessage, Send
@@ -42,7 +42,7 @@ OnExit, ExitRoutine
 ; Initialize
 	;WS_LOGTOCONSOLE := 1
 	WS_Startup()
-
+    
 ; Port/Socket setup
 	client := WS_Socket("TCP", "IPv4")
 	WS_Connect(client, "127.0.0.1", "12345")
@@ -78,7 +78,7 @@ ListViewNotifications:
 return
 
 WS_OnRead(socket){
-	Global sci, CodeID, NickName
+	Global sci, CodeID, NickName, nickList
 	static firstVist
 	
 	WS_Recv(socket, ServerMessage)
@@ -91,6 +91,8 @@ WS_OnRead(socket){
     	Gui, CltMain: Default
     	Loop, Parse, ServerMessage, %A_Space%
 			LV_Add("" ,"", A_LoopField) ;The username
+        StringReplace, nickList, ServerMessage, %NickName%%a_space%,,A
+        sci.SetKeywords(1,nickList)
     }
 	else if (msgType == "CODE||")
 	{
@@ -111,7 +113,9 @@ WS_OnRead(socket){
 	GuiControl, CltCode:, %CodeID%, %ServerMessage%
 	}
 	else if (msgType == "MESG||")
-    	sci.AddText(strLen(str:="`n" ServerMessage), str), sci.ScrollCaret()
+	{
+    	sci.AddText(strLen(str:=ServerMessage "`n"), str), sci.ScrollCaret()
+	}
 	else if (msgType == "NWCD||")
 	{
     	Gui, CltCode: Default
@@ -157,8 +161,19 @@ WS_OnRead(socket){
 	}
 }
 
-setup_Scintilla(sci){
-    sci.SetWrapMode("SC_WRAP_WORD"), sci.SetMarginWidthN("SC_MARGIN_NUMBER", 0)
+setup_Scintilla(sci, localNick=""){
+
+    sci.SetWrapMode("SC_WRAP_WORD"), sci.SetMarginWidthN("SC_MARGIN_NUMBER", 0), sci.SetLexer(108)
+    sci.StyleSetBold("STYLE_DEFAULT", true), sci.StyleClearAll()
+    
+    sci.SetKeywords(0,localNick)
+
+    sci.StyleSetFore(0,0x000000), sci.StyleSetBold(0, false)    ; SCE_MSG_DEFAULT
+    sci.StyleSetFore(1,0xFF0000)                                ; SCE_MSG_LOCALNICK
+    sci.StyleSetFore(2,0x0000FF)                                ; SCE_MSG_OTHERNICK
+    sci.StyleSetFore(3,0x0E0E0E), sci.StyleSetBold(3, false)    ; SCE_MSG_INFOMESSAGE
+    
+    return 0
 }
 
 CltMainGuiClose:

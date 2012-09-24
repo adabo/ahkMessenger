@@ -1,26 +1,25 @@
-﻿global unused:=0, null:=""
-; Title: Scintilla Wrapper for AHK
+﻿; Title: Scintilla Wrapper for AHK
 class scintilla {
     static hwnd := ""
-    
+
     __new(param*){
         this.hwnd := Add(param*)
     }
 
     __call(msg, ByRef wParam=0, ByRef lParam=0, param*){
-        
+
         if (msg = "Add")
             this.hwnd := Add(wParam, lParam, param*)
         else
         {
-            /* 
+            /*
               Special Operations
-              Due to the fact that some functions require the user to manually prepare bufferst to store text 
+              Due to the fact that some functions require the user to manually prepare bufferst to store text
               I decided to make most of those operations internally to have cleaner code later on.
             */
-                
+
             (msg = "GetText") ? (VarSetCapacity(lParam, wParam * (a_isunicode ? 2 : 1)), lParam := &lParam, buf:=true) : null
-            (msg = "GetLine") ? (VarSetCapacity(lParam, this.linelength(wParam)+1 * (a_isunicode ? 2 : 1)), lParam := &lParam, buf:=true) : null                    
+            (msg = "GetLine") ? (VarSetCapacity(lParam, this.linelength(wParam)+1 * (a_isunicode ? 2 : 1)), lParam := &lParam, buf:=true) : null
             (msg = "GetTextRange") ? (range:=abs(wParam.1 - wParam.2)+1, dSize :=  sendEditor(this.hwnd, "GetLength")
                                       ,VarSetCapacity(lParam, range > dSize ? (dSize, wParam.2 := dSize) : range)
                                       ,VarSetCapacity(textRange, 12, 0)
@@ -31,16 +30,16 @@ class scintilla {
 
             inStr(lParam, "0x") ? (lParam := (lParam & 0xFF) <<16 | (lParam & 0xFF00) | (lParam >>16),lParam := SubStr(lParam, 0x1)) : null
             inStr(wParam, "0x") ? (wParam := (wParam & 0xFF) <<16 | (wParam & 0xFF00) | (wParam >>16),wParam := SubStr(wParam, 0x1)) : null
-            
+
             if ((!(wParam+1) && !SCI(wParam)) || (!(lParam+1) && !SCI(lParam))) ; only run this if text received is not one of the SCI variables
             {
                 ; check if we are passing text in unicode build. If so, convert to ANSI
                 ; and store the pointer because sendEditor only works with pointers
-                
+
                 (wParam && !(wParam+1)) ? (VarSetCapacity(wParamA, StrPut(wParam, "CP0"))
                                           ,StrPut(wParam, &wParamA, "CP0")
                                           ,wParam:=&wParamA) : null
-                
+
                 (lParam && !(lParam+1)) ? (VarSetCapacity(lParamA, StrPut(lParam, "CP0"))
                                           ,StrPut(lParam, &lParamA, "CP0")
                                           ,lParam:=&lParamA) : null
@@ -49,13 +48,13 @@ class scintilla {
             {
                 ; it is a scintilla identifier
                 ; resolve the identifier to its numerical value
-                
+
                 wParam := !(wParam+1) ? SCI(wParam) : wParam
                 lParam := !(lParam+1) ? SCI(lParam) : lParam
             }
-            
-            res := sendEditor(this.hwnd, msg, wParam, lParam)            
-            
+
+            res := sendEditor(this.hwnd, msg, wParam, lParam)
+
             ; I must switch lParam to another variable when using GetTextRange because lParam cant be overwriten
             ; It has the pointer to the TextRange Structure
             buf ? (lParam := StrGet((msg = "GetTextRange") ? blParam : &lParam, "CP0"), buf:=false) : null ; convert the text from ANSI
@@ -64,9 +63,6 @@ class scintilla {
     }
 }
 
-m(var){
-    msgbox % var
-}
 ; | Internal Functions |
 
 /*
@@ -107,7 +103,7 @@ m(var){
 
     Gui +LastFound
     hwnd:=WinExist(), sci := new scintilla(hwnd)
-    
+
     Gui, show, w600 h400
     return
 
@@ -154,7 +150,7 @@ m(var){
     action := tabLast = "one" ? "Show" : "Hide" ; decide which action to take
     Control,%action%,,, % "ahk_id " sci.hwnd
     return
-    
+
     GuiClose:
         exitapp
     (end)
@@ -171,9 +167,9 @@ Add(hParent, x=5, y=5, w=590, h=390, Styles="", DllPath="", MsgHandler=""){
     DllPath := !DllPath ? "SciLexer.dll" : inStr(DllPath, "SciLexer.dll") ? DllPath : DllPath "\SciLexer.dll"
     if !init        ;  WM_NOTIFY = 0x4E
         old:=OnMessage(0x4E,"SCI_onNotify"),init:=True
-    
+
     old!="SCI_onNotify" ? SCI("oldNotify", RegisterCallback(old)) : null
-                                                                       
+
     if !SCIModule:=DllCall("LoadLibrary", "Str", DllPath)
         return debug ? A_ThisFunc "> Could not load library: " DllPath : -1
 
@@ -237,7 +233,7 @@ sendEditor(hwnd, msg=0, wParam=0, lParam=0){
     if !init
     {
         ; Main Scintilla Functions
-        
+
         SCI_ADDTEXT:=2001,SCI_ADDSTYLEDTEXT:=2002,SCI_INSERTTEXT:=2003,SCI_CLEARALL:=2004,SCI_CLEARDOCUMENTSTYLE:=2005,SCI_GETLENGTH:=2006
         SCI_GETCHARAT:=2007,SCI_GETCURRENTPOS:=2008,SCI_GETANCHOR:=2009,SCI_GETSTYLEAT:=2010,SCI_REDO:=2011,SCI_SETUNDOCOLLECTION:=2012
         SCI_SELECTALL:=2013,SCI_SETSAVEPOINT:=2014,SCI_GETSTYLEDTEXT:=2015,SCI_CANREDO:=2016,SCI_MARKERLINEFROMHANDLE:=2017
@@ -333,7 +329,7 @@ sendEditor(hwnd, msg=0, wParam=0, lParam=0){
 
 SCI(var, val=""){
     static
-    
+
     INVALID_POSITION:=-1,MARKER_MAX:=31,STYLE_DEFAULT:=32,STYLE_LINENUMBER:=33,STYLE_BRACELIGHT:=34,STYLE_BRACEBAD:=35,STYLE_CONTROLCHAR:=36
     STYLE_INDENTGUIDE:=37,STYLE_CALLTIP:=38,STYLE_LASTPREDEFINED:=39,STYLE_MAX:=127,INDIC_MAX:=7,INDIC_PLAIN:=0,INDIC_SQUIGGLE:=1,INDIC_TT:=2
     INDIC_DIAGONAL:=3,INDIC_STRIKE:=4,INDIC_HIDDEN:=5,INDIC_BOX:=6,INDIC_ROUNDBOX:=7,INDIC0_MASK:=0x20,INDIC1_MASK:=0x40,INDIC2_MASK:=0x80
@@ -397,9 +393,9 @@ SCI(var, val=""){
     SCI_DELWORDRIGHTEND:=2518,SCI_VERTICALCENTRECARET:=2619,SCI_MOVESELECTEDLINESUP:=2620,SCI_MOVESELECTEDLINESDOWN:=2621,SCMOD_NORM:=0
     SCMOD_SHIFT:=1,SCMOD_CTRL:=2,SCMOD_ALT:=4
 
-    if (instr(var, a_space) || instr(var, "`n"))    ; if it has spaces or newlines we dont need to even check for it being a variable name.
-        return
-        
+    if (instr(var, a_space) || instr(var, "`n") || instr(var, "-")) ; if it has spaces or newlines
+        return                                                      ; we dont need to even check for it being a variable name.
+
 	lvar := %var%, val ? %var% := val : null
     return lvar
 }

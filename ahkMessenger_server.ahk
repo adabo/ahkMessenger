@@ -24,7 +24,7 @@ serverIP := "999"
 
 ; GUI
 	Gui, ServMain: +LastFound
-    hwnd := WinExist(), sci := new scintilla(hwnd, 10,0,400,200, "", a_scriptdir "\lib"), setup_Scintilla(sci)
+    hwnd := WinExist(), sci := new scintilla(hwnd, 10,0,400,200, "", a_scriptdir "\lib"), setup_Scintilla(sci, NickName)
     Gui, ServMain: Add, ListView, x420 y6 w120 h198 -Hdr -Multi, Icon|Users
 	Gui, ServMain: Add, Edit, x10 y210 w530 -WantReturn vGuiMessage -0x100
 	Gui, ServMain: Add, Button, x10 Default gSendMessage, Send
@@ -70,7 +70,7 @@ SendMessage:
 	for key, value in NewConnection
 		if (NewConnection[key] != 999)
 			WS_Send(NewConnection[key], "MESG||" . NickName . ": " . GuiMessage)
-    sci.AddText(strLen(str:="`n" NickName ": " GuiMessage), str), sci.ScrollCaret()
+    sci.AddText(strLen(str:=NickName ": " GuiMessage "`n"), str), sci.ScrollCaret()
 	GuiControl, ServMain:, GuiMessage
 return
 
@@ -116,7 +116,7 @@ WS_OnAccept(socket){
 
 ; Send to Multiple clients
 WS_OnRead(socket){
-    global Log, LogID, NewConnection, sci, userCodes, userName, nameFromSocket
+    global Log, LogID, NewConnection, sci, userCodes, userName, nameFromSocket, NickName
 
     WS_Recv(socket, ClientMessage)
     msgType :=  SubStr(ClientMessage, 1 , 6)
@@ -132,7 +132,10 @@ WS_OnRead(socket){
 	    for key, value in NewConnection
    			if (key != 999)
 				WS_Send(key, "USLS||" . nickList)
-
+        
+        StringReplace, nickList, nickList, %NickName%%a_space%,,A
+        sci.SetKeywords(1,nl:=nickList)
+        
 ;========Update Server listview main====
     	Gui, ServMain: Default
     	Loop, Parse, nickList, %A_Space%
@@ -146,7 +149,7 @@ WS_OnRead(socket){
    		for key, value in NewConnection
    			if (NewConnection[key] != 999)
 				WS_Send(NewConnection[key], "MESG||" . ClientMessage)
-		sci.AddText(strLen(str:="`n" ClientMessage), str), sci.ScrollCaret()
+		sci.AddText(strLen(str:=ClientMessage "`n"), str), sci.ScrollCaret()
     }
     else if (msgType == "RQST||")
     {
@@ -202,8 +205,19 @@ WS_OnCLose(socket){
 	nameFromSocket.Remove(socket, "")
 }
 
-setup_Scintilla(sci){
-    sci.SetWrapMode("SC_WRAP_WORD"), sci.SetMarginWidthN("SC_MARGIN_NUMBER", 0)
+setup_Scintilla(sci, localNick=""){
+
+    sci.SetWrapMode("SC_WRAP_WORD"), sci.SetMarginWidthN("SC_MARGIN_NUMBER", 0), sci.SetLexer(108)
+    sci.StyleSetBold("STYLE_DEFAULT", true), sci.StyleClearAll()
+    
+    sci.SetKeywords(0,localNick)
+
+    sci.StyleSetFore(0,0x000000), sci.StyleSetBold(0, false)    ; SCE_MSG_DEFAULT
+    sci.StyleSetFore(1,0xFF0000)                                ; SCE_MSG_LOCALNICK
+    sci.StyleSetFore(2,0x0000FF)                                ; SCE_MSG_OTHERNICK
+    sci.StyleSetFore(3,0x0E0E0E), sci.StyleSetBold(3, false)    ; SCE_MSG_INFOMESSAGE
+    
+    return 0
 }
 
 ServMainGuiClose:
