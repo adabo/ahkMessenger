@@ -10,6 +10,7 @@
 
 #include <ws>
 #include <SCI>
+#include <chatGUI>
 #singleinstance force
 
 NickName := "Server"
@@ -23,27 +24,7 @@ nameFromSocket := Object()
 serverIP := "999"
 
 ; GUI
-	Gui, ServMain: +LastFound
-    hwnd := WinExist(), sci := new scintilla(hwnd, 10,0,400,200, "", a_scriptdir "\lib"), setup_Scintilla(sci, NickName)
-    Gui, ServMain: Add, ListView, x420 y6 w120 h198 -Hdr -Multi, Icon|Users
-	Gui, ServMain: Add, Edit, x10 y210 w530 -WantReturn vGuiMessage -0x100
-	Gui, ServMain: Add, Button, x10 Default gSendMessage, Send
-	Gui, ServMain: Add, Button, x10 xp40 yp gCodeWin, Code
-	
-	Gui, ServCode: Default
-	Gui, ServCode: Font, s10, Lucida Console
-	Gui, ServCode: Add, Edit, w400 h400 vGuiCode HwndCodeID
-	Gui, ServCode: Add, ListView, x420 y8 w140 h400 -Hdr -Multi gListViewNotifications, Icon|Users
-	ImageListID := IL_Create(2)
-	LV_SetImageList(ImageListID)
-	IL_Add(ImageListID, "shell32.dll", 71)
-	IL_Add(ImageListID, "shell32.dll", 291)
-
-	Gui, ServCode: Font, s8, Tahoma
-	Gui, ServCode: Add, Button, x10 gSendCode, Send ;Sends to server
-
-	Gui, ServMain:Show
-
+	CreateServerGui()
 
 ; Initialize
 	WS_LOGTOCONSOLE := 1
@@ -63,50 +44,6 @@ serverIP := "999"
 
 return
 
-SendMessage:
-	Gui, Submit, NoHide
-	if (!GuiMessage)
-		return
-	for key, value in NewConnection
-		if (NewConnection[key] != 999)
-			WS_Send(NewConnection[key], "MESG||" . NickName . ": " . GuiMessage)
-    sci.AddText(strLen(str:=NickName ": " GuiMessage "`n"), str), sci.ScrollCaret()
-	GuiControl, ServMain:, GuiMessage
-return
-
-CodeWin:
-	Gui, ServCode: Show
-return
-
-SendCode:
-	Gui, ServCode: Submit, NoHide
-	userCodes[serverIP] := GuiCode
-	Gui, ServCode: Default
-
-	LV_ModifyCol(1)
-	if(!firstVisit)
-	{
-		LV_Add("Icon" . 3, "", NickName)
-		LV_ModifyCol(1)
-		firstVisit++
-	}
-
-	for key, value in NewConnection
-		if (NewConnection[key] != 999)
-			WS_Send(NewConnection[key], "NWCD||" . NickName)
-	;WS_Send(client, "NWCD||" . GuiCode)
-return
-
-ListViewNotifications:
-	if (A_GuiEvent == "DoubleClick") ;Request code from server with user name
-	{
-		Gui, ServCode: Default
-		LV_GetText(rowText, A_EventInfo, 2)
-		skt := userName[rowText]
-		GuiControl, ServCode:, %CodeID%, % userCodes[skt]
-		LV_Modify(A_EventInfo, "Icon" . 0)
-	}
-return
 
 WS_OnAccept(socket){
     global NewConnection
@@ -134,7 +71,7 @@ WS_OnRead(socket){
 				WS_Send(key, "USLS||" . nickList)
         
         StringReplace, nickList, nickList, %NickName%%a_space%,,A
-        sci.SetKeywords(1,nl:=nickList)
+        sci[1].SetKeywords(1,nl:=nickList)
         
 ;========Update Server listview main====
     	Gui, ServMain: Default
@@ -150,7 +87,7 @@ WS_OnRead(socket){
    		for key, value in NewConnection
    			if (NewConnection[key] != 999)
 				WS_Send(NewConnection[key], "MESG||" . ClientMessage)
-		sci.AddText(strLen(str:=ClientMessage "`n"), str), sci.ScrollCaret()
+		sci[1].AddText(strLen(str:=ClientMessage "`n"), str), sci[1].ScrollCaret()
     }
     else if (msgType == "RQST||")
     {
@@ -204,21 +141,6 @@ WS_OnCLose(socket){
 	userName.Remove(nameFromSocket[socket])
 	NewConnection.Remove(socket, "")
 	nameFromSocket.Remove(socket, "")
-}
-
-setup_Scintilla(sci, localNick=""){
-
-    sci.SetWrapMode("SC_WRAP_WORD"), sci.SetMarginWidthN("SC_MARGIN_NUMBER", 0), sci.SetLexer(2)
-    sci.StyleSetBold("STYLE_DEFAULT", true), sci.StyleClearAll()
-    
-    sci.SetKeywords(0,localNick)
-
-    sci.StyleSetFore(0,0x000000), sci.StyleSetBold(0, false)    ; SCE_MSG_DEFAULT
-    sci.StyleSetFore(1,0xFF0000)                                ; SCE_MSG_LOCALNICK
-    sci.StyleSetFore(2,0x0000FF)                                ; SCE_MSG_OTHERNICK
-    sci.StyleSetFore(3,0x0E0E0E), sci.StyleSetBold(3, false)    ; SCE_MSG_INFOMESSAGE
-    
-    return 0
 }
 
 ServMainGuiClose:
