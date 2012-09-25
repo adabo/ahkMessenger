@@ -13,6 +13,216 @@ Legend:
     $ Disable
 ==================
 
+/*************************
+* Stuff to fix/add:
+*-Prevent illegal characters
+*-Authentication
+*-Encryption
+*-Message identification
+*-Disable message log control
+*
+*
+*
+**************************/
+
+commit 7504a95d3dddc56a40b89649f603a5923dc12547
+Author: Abel Gutierrez <abel4@msn.com>
+Date:   Tue Sep 25 00:40:47 2012 -0500
+
+    ahkMessenger v0.15
+
+    Changes:
+
+    + Add new user connects
+
+commit 49f3d57dc28bb238977aa856924b755ef64670bb
+Author: Abel Gutierrez <abel4@msn.com>
+Date:   Mon Sep 24 18:04:24 2012 -0500
+
+    ahkMessenger v0.14
+
+    Changes:
+
+    + Added Notices from server on: connect, new code
+    * Changed Server code "999" to "000" for stability
+
+    ToDo:
+
+    Bug on Code window: If code contains "0x", other clients
+    recieve blank code.
+
+commit 99ca8a626de50d53b93c6d8a2711d323b324a270
+Author: Abel Gutierrez <abel4@msn.com>
+Date:   Mon Sep 24 17:17:43 2012 -0500
+
+    ahkMessenger
+
+    Edited sci.ahk for testing
+
+commit 21d704ebfdd31f4085f81e4492b6b6f529cd26e3
+Author: RaptorX <graptorx@gmail.com>
+Date:   Mon Sep 24 23:31:30 2012 +0200
+
+    ahkMessenger v0.13
+
+    Changes:
+
+    ! Fix Code Sending/Receiving
+
+commit cc5c878cb21fb2b52139b20a89f375408574a23b
+Author: RaptorX <graptorx@gmail.com>
+Date:   Mon Sep 24 22:57:26 2012 +0200
+
+    ahkMessenger v0.12
+
+    Changes:
+
+    ! Fix Code Window bug
+
+commit ac8cb81c68506bf7001b9e8916abe8d0d0bb826b
+Author: RaptorX <graptorx@gmail.com>
+Date:   Mon Sep 24 22:45:31 2012 +0200
+
+    ahkMessage v0.11
+
+    Changes:
+
+    + Add AHK Lexer keywords
+
+commit 5ac1bcf6542fa1085b610501eba37346fb9dc29a
+Merge: 21cf568 b41b30c
+Author: RaptorX <graptorx@gmail.com>
+Date:   Mon Sep 24 21:48:08 2012 +0200
+
+    Merge branch 'devel'
+
+commit b41b30cba095bfb0d3805583fe4697ebb3da9516
+Author: RaptorX <graptorx@gmail.com>
+Date:   Mon Sep 24 21:47:05 2012 +0200
+
+    ahkMessenger v0.10
+
+    Changed:
+
+    + Add AHK Lexer to code window
+
+commit 21cf568a682c4b5047f56f6195a89fabd914d4fe
+Author: Abel Gutierrez <abel4@msn.com>
+Date:   Mon Sep 24 13:28:23 2012 -0500
+
+    ahkMessenger v0.9
+
+    Changes:
+    !Refresh user list
+
+commit 584f108cd9484dcaa4e136b7767ae069cb86e4b6
+Author: RaptorX <graptorx@gmail.com>
+Date:   Mon Sep 24 13:37:13 2012 +0200
+
+    !Fix set correct lexer
+
+commit 7ab23c0d2dcfb0c3ec2fc3510c651fc8f97ab33c
+Merge: d83aa75 60e8272
+Author: RaptorX <graptorx@gmail.com>
+Date:   Mon Sep 24 13:33:02 2012 +0200
+
+    ahkMessenger v0.9
+
+    Changes:
+
+    + Add nick coloring
+
+commit 60e8272db169ffc3b8220c7a48e6aa40f115018d
+Author: RaptorX <graptorx@gmail.com>
+Date:   Mon Sep 24 13:28:59 2012 +0200
+
+    ahkMessenger
+
+    Changes:
+
+    + Add coloring
+
+commit d83aa750f4ef026c37fe975ae37529bf31063d69
+Author: Abel Gutierrez <abel4@msn.com>
+Date:   Mon Sep 24 01:07:32 2012 -0500
+
+    ahkMessenger v0.8
+
+    Changes:
+    *GUI improved
+    !ListView on Main deletes user
+     on disconnect
+    !Code tidy
+
+commit 451c3c839bb2490bd7c25d113dc0187ee5a76a30
+Author: Abel Gutierrez <abel4@msn.com>
+Date:   Sun Sep 23 18:04:59 2012 -0500
+
+    ahkMessenger v0.7
+
+    Changes:
+    +Icons to code listview
+    +Listview to main gui with nicklis
+    +Update nicklist every time user connects
+    +Removed Request button from code window
+     replaced by Double click LV
+
+commit 83d4ed5c39ab0ee43c18c0215f31066ce3867be6
+Author: Abel Gutierrez <abel4@msn.com>
+Date:   Sun Sep 23 07:08:02 2012 -0500
+
+    ahkMessenger v0.6
+
+    Changes:
+    +Star icon for read/unread code in code window
+
+    To do:
+    -Autscroll on main chat still broke
+    -Read code when click gold star (remove request button)
+
+commit 3948c71abc2af28a010a9947ec1ae8e37974a546
+Author: Abel Gutierrez <abel4@msn.com>
+Date:   Sun Sep 23 03:34:03 2012 -0500
+
+    ahkMessenger 0.4
+
+    Changes
+    +Code sharing
+    +Code window listview for users
+
+    Broke
+    -Autoscroll on main chat log
+
+commit db370d1a139f036c7a3bf4364ecabb68473baad9
+Author: Abel Gutierrez <abel4@msn.com>
+Date:   Sat Sep 22 21:52:56 2012 -0500
+
+    ahkMessenger v0.4
+
+    Fixed arrays for newUser and userCode
+
+commit 047f5a02cc306700f4e3d7307552697a9355ad91
+Author: Abel Gutierrez <abel4@msn.com>
+Date:   Sat Sep 22 20:55:07 2012 -0500
+
+    ahkMessenger v0.3
+
+    Started development branch
+
+commit 795bedba77d12c646eef6c421141d2da8a65c9e7
+Author: Abel Gutierrez <abel4@msn.com>
+Date:   Sat Sep 22 17:30:43 2012 -0500
+
+    Code sends to Server and back to Client
+
+    Added the Ability to send code between only the server and
+    one client.
+
+    To do:
+    -Add multi user functionality
+    -Fix userCode[] Object
+    -Fix remove user after disconnect
+
 commit c2a727f1a4107eae60f02469e90922ebb7480bb8
 Author: RaptorX <graptorx@gmail.com>
 Date:   Sat Sep 22 23:50:36 2012 +0200

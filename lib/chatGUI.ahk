@@ -22,7 +22,6 @@
     hwnd := WinExist(), sci[2] := new scintilla(hwnd, 0,0,400,400,"", a_scriptdir "\lib") 
 
     Gui, CltCode: Font, s10, Lucida Console
-    ; Gui, CltCode: Add, Edit, w400 h400 vGuiCode HwndCodeID
     Gui, CltCode: Add, ListView, x420 y8 w140 h400 -Hdr -Multi gcListViewNotifications, Icon|Users
     ImageListID := IL_Create(2)
     LV_SetImageList(ImageListID)
@@ -62,8 +61,8 @@
     return
 
     cSendCode:
-        sci[2].GetText(sci[2].GetLength()+1, GuiCode)
-        WS_Send(client, "NWCD||" . GuiCode)
+        sci[2].GetText(sci[2].GetLength()+1, cGuiCode)
+        WS_Send(client, "NWCD||" . cGuiCode)
     return
 
     cListViewNotifications:
@@ -100,7 +99,6 @@ CreateServerGui(){
     hwnd := WinExist(), sci[2] := new scintilla(hwnd, 0,0,400,400,"", a_scriptdir "\lib")
     
 	Gui, ServCode: Font, s10, Lucida Console
-	; Gui, ServCode: Add, Edit, w400 h400 vGuiCode HwndCodeID
 	Gui, ServCode: Add, ListView, x420 y8 w140 h400 -Hdr -Multi gsListViewNotifications, Icon|Users
 	ImageListID := IL_Create(2)
 	LV_SetImageList(ImageListID)
@@ -120,7 +118,7 @@ CreateServerGui(){
     	if (!GuiMessage)
     		return
     	for key, value in NewConnection
-    		if (NewConnection[key] != 999)
+    		if (NewConnection[key] != 000)
     			WS_Send(NewConnection[key], "MESG||" . NickName . ": " . GuiMessage)
         sci[1].AddText(strLen(str:=NickName ": " GuiMessage "`n"), str), sci[1].ScrollCaret()
     	GuiControl, ServMain:, GuiMessage
@@ -131,8 +129,8 @@ CreateServerGui(){
     return
 
     sSendCode:
-        sci[2].GetText(sci[2].GetLength()+1, GuiCode)
-        userCodes[serverIP] := GuiCode
+        sci[2].GetText(sci[2].GetLength()+1, sGuiCode)
+        userCodes[serverIP] := sGuiCode
         Gui, ServCode: Default
 
         LV_ModifyCol(1)
@@ -144,7 +142,7 @@ CreateServerGui(){
         }
 
         for key, value in NewConnection
-            if (NewConnection[key] != 999)
+            if (NewConnection[key] != 000)
                 WS_Send(NewConnection[key], "NWCD||" . NickName)
     return
 
