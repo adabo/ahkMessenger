@@ -15,23 +15,23 @@ Author: adabo, RaptorX
 #include <chatGUI>
 #singleinstance force
 
+type := "client"
 OnExit, ExitRoutine
 
 ; GUI
-    CreateClientGui()
-
-    ;WS_LOGTOCONSOLE := 1
+    CreateGui()
 	WS_Startup()
 
 	;Port/Socket setup
 	client := WS_Socket("TCP", "IPv4")
 	WS_Connect(client, test ? "127.0.0.1" : "99.23.4.199", "12345")
 	WS_HandleEvents(client, "READ")
-	WS_Send(client, "USRN||" . cEdNick)
+    
+	WS_Send(client, "USRN||" . EdNick)
 return
 
 WS_OnRead(socket){
-	Global sci, CodeID, cEdNick, nickList
+	Global sci, CodeID, EdNick, nickList
 	static firstVist
 	
 	WS_Recv(socket, ServerMessage)
@@ -45,17 +45,17 @@ WS_OnRead(socket){
     	RegexMatch(ServerMessage, "^(.+?)\|\|", match)
         StringTrimLeft, ServerMessage, ServerMessage, strLen(match1) + 2
     	
-    	Gui, CltMain: Default
+    	Gui, Main: Default
     	lV_Delete()
     	Loop, Parse, ServerMessage, %A_Space%
 			LV_Add("" ,"", A_LoopField) ;The username
-        StringReplace, nickList, ServerMessage, %cEdNick%%a_space%,,A
+        StringReplace, nickList, ServerMessage, %EdNick%%a_space%,,A
         sci[1].SetKeywords(1,nickList)
         sci[1].AddText(strLen(str := "Notice: " match1 . " has connected.`n"), str), sci.ScrollCaret()
     }
 	else if (msgType == "CODE||")
 	{
-		Gui, CltCode: Default
+		Gui, Code: Default
 		RegexMatch(ServerMessage, "^(.+?)\|\|", match)
 		StringTrimLeft, ServerMessage, ServerMessage, strLen(match1) + 2 ;Get requested name from message
 
@@ -79,7 +79,7 @@ WS_OnRead(socket){
 	}
 	else if (msgType == "NWCD||")
 	{
-    	Gui, CltCode: Default
+    	Gui, Code: Default
 		if (ServerMessage == NickName) ;Do not add icon to Own Nickname
 		{
 			if (!firstVist)
@@ -115,7 +115,7 @@ WS_OnRead(socket){
 	}
 	else if (msgType == "DISC||")
 	{
-		Gui, CltMain: Default
+		Gui, Main: Default
 		loop % LV_GetCount()
 		{
 			LV_GetText(nm, A_Index, 2)
@@ -125,7 +125,7 @@ WS_OnRead(socket){
 	}
 }
 
-CltMainGuiClose:
+MainGuiClose:
 ExitRoutine:
 	WS_CloseSocket(client)
 	WS_Shutdown()

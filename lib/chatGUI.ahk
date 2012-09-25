@@ -1,160 +1,118 @@
-﻿CreateClientGui(){
+﻿CreateGui(){
     global
 
-    Gui, CltMain: +LastFound
+    Gui, Main: +LastFound
     sci := {} ; Scintilla Editor Array
     hwnd := WinExist(), sci[1] := new scintilla(hwnd, 10,0,400,200, "", a_scriptdir "\lib")
+    
+    Gui, Main: Add, ListView, x420 y6 w120 h198 -Hdr -Multi, Icon|Users
+    Gui, Main: Add, Edit, x10 y210 w400 -WantReturn vGuiMessage -0x100
+    Gui, Main: Add, Button, x+10 yp w55 Default gSendMessage, Send
+    Gui, Main: Add, Button, x+10 yp w55 gCodeWin, Code
+    Gui, Main: Add, GroupBox, x10 y+10 w530, Connection Settings
+    Gui, Main: Add, Text, xp+30 yp+25, Nickname:
+    Gui, Main: Add, Edit, x+10 yp-3 w100 vEdNick, % (type = "client" ? "Guest" A_TickCount : "Server")
+    Gui, Main: Add, Text, x+40 yp+3, Server:
+    Gui, Main: Add, Edit, xp50 yp-3 w100 vEdServIP Disabled, % (type = "client" ? "99.23.4.199" : "0.0.0.0") 
+    
+    if (type = "client")
+    {
+        Gui, Main: Add, Button, x+10 yp w55 gConnectToServer, Connect
+        Gui, Main: Add, CheckBox, x+10 yp+5 gDisableIP vTest Checked1, Test
+    }
 
-    Gui, CltMain: Add, ListView, x420 y6 w120 h198 -Hdr -Multi, Icon|Users
-    Gui, CltMain: Add, Edit, x10 y210 w530 -WantReturn vGuiMessage -0x100
-    Gui, CltMain: Add, Button, x10 yp30 Default gcSendMessage, Send
-    Gui, CltMain: Add, Button, x10 xp40 yp gcCodeWin, Code
-    Gui, CltMain: Add, GroupBox, xp46 yp-6 w444
-    Gui, CltMain: Add, Text, x108 y260, Nickname:
-    Gui, CltMain: Add, Edit, xp56 yp-2 w100 vcEdNick, Guest%A_TickCount%
-    Gui, CltMain: Add, Text, xp140 y260, Server:
-    Gui, CltMain: Add, Edit, xp50 yp-2 w100 vcEdServIP Disabled, 99.23.4.199
-    Gui, CltMain: Add, Button, xp118 yp4 gcConnectToServer, Connect  
-    Gui, CltMain: Add, CheckBox, xp yp-18 gcDisableIP vTest Checked1 , Test
-
-    Gui, CltCode: Default
-    Gui, CltCode: +LastFound
+    Gui, Code: Default
+    Gui, Code: +LastFound
     hwnd := WinExist(), sci[2] := new scintilla(hwnd, 0,0,400,400,"", a_scriptdir "\lib") 
 
-    Gui, CltCode: Font, s10, Lucida Console
-    Gui, CltCode: Add, ListView, x420 y8 w140 h400 -Hdr -Multi gcListViewNotifications, Icon|Users
+    Gui, Code: Font, s10, Lucida Console
+    Gui, Code: Add, ListView, x420 y8 w140 h400 -Hdr -Multi gListViewNotifications, Icon|Users
     ImageListID := IL_Create(2)
     LV_SetImageList(ImageListID)
     IL_Add(ImageListID, "shell32.dll", 71)
     IL_Add(ImageListID, "shell32.dll", 291)
-    Gui, CltCode: Font, s8, Tahoma
-    Gui, CltCode: Add, Button, x10 y410 gcSendCode, Send ;Sends to server
     
-    setup_Scintilla(sci)
+    Gui, Code: Font, s8, Tahoma
+    Gui, Code: Add, Button, x335 y410 w75 gSendCode, Send ;Sends to server
     
-    Gui, CltMain:Show,,ahkMessenger Client
-    Pause, On
-
-    cConnectToServer:
+    Gui, Main: Submit, NoHide
+    setup_Scintilla(sci, EdNick)
+    
+    Gui, Main: Show,, % "ahkMessenger " (type = "client" ? "Client" : "Server")
+    
+    if (type = "client")
+        Pause, On
+    return
+    
+    ConnectToServer:
+        setup_Scintilla(sci, EdNick)
         Pause, Off
-        Gui, CltMain: Submit, NoHide
-        setup_Scintilla(sci, cEdNick)
     return
 
-    cDisableIP:
-        Gui, CltMain: Submit, NoHide
-        if (test)
-            GuiControl, CltMain: Disable, cEdServIP
-         else
-             GuiControl, CltMain: Enable, cEdServIP
+    DisableIP:
+        Gui, Submit, NoHide
+        GuiControl, % test ? "Disable" : "Enable", EdServIP
     return
 
-    cCodeWin:
-        Gui, CltCode: Show
+    CodeWin:
+        Gui, Code: Show
     return
 
-    cSendMessage:
-        Gui, CltMain:Submit, NoHide
-        if (!GuiMessage)
-            return
-        WS_Send(client, "MESG||" . cEdNick . ": " . GuiMessage)
-        GuiControl, CltMain:, GuiMessage
+    SendMessage:
+        Gui, Main: Submit, NoHide
+        ; if (!GuiMessage)
+            ; return
+        if (type = "client")
+        {
+            WS_Send(client, "MESG||" . EdNick . ": " . GuiMessage)
+            GuiControl, Main:, GuiMessage
+        }
+        else if (type = "server")
+        {
+            for key, value in NewConnection
+                if (NewConnection[key] != 000)
+                    WS_Send(NewConnection[key], "MESG||" . EdNick . ": " . GuiMessage)
+            sci[1].AddText(strLen(str:=EdNick ": " GuiMessage "`n"), str), sci[1].ScrollCaret()
+            GuiControl, Main:, GuiMessage
+        }
     return
 
-    cSendCode:
-        sci[2].GetText(sci[2].GetLength()+1, cGuiCode)
-        WS_Send(client, "NWCD||" . cGuiCode)
+    SendCode:
+        sci[2].GetText(sci[2].GetLength()+1, GuiCode:="")
+        if (type = "client")
+            WS_Send(client, "NWCD||" . GuiCode)
+        else if (type "server")
+        {
+            userCodes[serverIP] := GuiCode
+            Gui, Code: Default
+
+            LV_ModifyCol(1)
+            if(!firstVisit)
+            {
+                LV_Add("Icon" . 3, "", NickName)
+                LV_ModifyCol(1), firstVisit++
+            }
+
+            for key, value in NewConnection
+                if (NewConnection[key] != 000)
+                    WS_Send(NewConnection[key], "NWCD||" . EdNick)
+        }
     return
 
-    cListViewNotifications:
+    ListViewNotifications:
         if (A_GuiEvent == "DoubleClick")
         {
-            Gui, CltCode: Default
-            rowNum := LV_GetNext(0, "Focused")
-            LV_GetText(reqUserName, rowNum, 2)
-            WS_Send(client, "RQST||" . reqUserName)
-        }
-    return
-}
-
-CreateServerGui(){
-    global
-
-    Gui, ServMain: +LastFound
-    sci := {} ; Scintilla Editor Array
-    hwnd := WinExist(), sci[1] := new scintilla(hwnd, 10,0,400,200, "", a_scriptdir "\lib")
-    
-    Gui, ServMain: Add, ListView, x420 y6 w120 h198 -Hdr -Multi, Icon|Users
-	Gui, ServMain: Add, Edit, x10 y210 w530 -WantReturn vGuiMessage -0x100
-	Gui, ServMain: Add, Button, x10 yp30 Default gsSendMessage, Send
-	Gui, ServMain: Add, Button, x10 xp40 yp gsCodeWin, Code
-    Gui, ServMain: Add, GroupBox, xp46 yp-6 w444
-    Gui, ServMain: Add, Text, x108 y260, Nickname:
-    Gui, ServMain: Add, Edit, xp56 yp-2 w100 vsEdNick, Server
-    Gui, ServMain: Add, Text, xp140 y260, Server:
-    Gui, ServMain: Add, Edit, xp50 yp-2 w100 -Number vsEdServIP, 0.0.0.0
-    ;Gui, ServMain: Add, Button, xp128 yp-2 gsConnectToServer, Connect
-	
-	Gui, ServCode: Default
-    Gui, ServCode: +LastFound
-    hwnd := WinExist(), sci[2] := new scintilla(hwnd, 0,0,400,400,"", a_scriptdir "\lib")
-    
-	Gui, ServCode: Font, s10, Lucida Console
-	Gui, ServCode: Add, ListView, x420 y8 w140 h400 -Hdr -Multi gsListViewNotifications, Icon|Users
-	ImageListID := IL_Create(2)
-	LV_SetImageList(ImageListID)
-	IL_Add(ImageListID, "shell32.dll", 71)
-	IL_Add(ImageListID, "shell32.dll", 291)
-
-	Gui, ServCode: Font, s8, Tahoma
-	Gui, ServCode: Add, Button, x10 y410 gsSendCode, Send ;Sends to server
-    Gui, ServMain: Submit, NoHide
-
-    setup_Scintilla(sci, sEdNick)
-    Gui, ServMain:Show,,ahkMessenger Server
-    return
-    
-    sSendMessage:
-    	Gui, ServMain: Submit, NoHide
-    	if (!GuiMessage)
-    		return
-    	for key, value in NewConnection
-    		if (NewConnection[key] != 000)
-    			WS_Send(NewConnection[key], "MESG||" . sEdNick . ": " . GuiMessage)
-        sci[1].AddText(strLen(str:=sEdNick ": " GuiMessage "`n"), str), sci[1].ScrollCaret()
-    	GuiControl, ServMain:, GuiMessage
-    return
-
-    sCodeWin:
-        Gui, ServCode: Show
-    return
-
-    sSendCode:
-        sci[2].GetText(sci[2].GetLength()+1, sGuiCode)
-        userCodes[serverIP] := sGuiCode
-        Gui, ServCode: Default
-
-        LV_ModifyCol(1)
-        if(!firstVisit)
-        {
-            LV_Add("Icon" . 3, "", NickName)
-            LV_ModifyCol(1)
-            firstVisit++
-        }
-
-        for key, value in NewConnection
-            if (NewConnection[key] != 000)
-                WS_Send(NewConnection[key], "NWCD||" . sEdNick)
-    return
-
-    sListViewNotifications:
-        if (A_GuiEvent == "DoubleClick") ;Request code from server with user name
-        {
-            Gui, ServCode: Default
-            LV_GetText(rowText, A_EventInfo, 2)
-            skt := userName[rowText]            
-            sci[2].ClearAll(), sci[2].AddText(strLen(str:=userCodes[skt]), str), sci[2].ScrollCaret()
-            LV_Modify(A_EventInfo, "Icon" . 0)
+            Gui, Code: Default
+            LV_GetText(nick, A_EventInfo, 2)
+            
+            if (type = "client")
+                WS_Send(client, "RQST||" . nick)
+            else if (type = "server")
+            {
+                skt := userName[nick]            
+                sci[2].ClearAll(), sci[2].AddText(strLen(str:=userCodes[skt]), str), sci[2].ScrollCaret()
+                LV_Modify(A_EventInfo, "Icon" . 0)
+            }
         }
     return
 }

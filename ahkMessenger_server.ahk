@@ -13,6 +13,7 @@
 #include <chatGUI>
 #singleinstance force
 
+type := "server"
 
 OnExit, ExitRoutine
 
@@ -24,14 +25,14 @@ OnExit, ExitRoutine
     serverIP := "000"
 
 ; GUI
-	CreateServerGui()
-    NickName := sEdNick
-    if (NickName != "Server")
+	CreateGui()
+    
+    if (EdNick != "Server")
     {
         msgbox, The server nick MUST be: "Server"!
         return
     }
-    else if (!sEdServIP)
+    else if (!EdServIP)
         return
     
     ; Initialize
@@ -40,20 +41,20 @@ OnExit, ExitRoutine
 
     ; Port/Socket setup
     server := WS_Socket("TCP", "IPv4")
-    WS_Bind(server, sEdServIP, "12345")
+    WS_Bind(server, EdServIP, "12345")
     WS_Listen(server)
     WS_HandleEvents(server, "ACCEPT READ CLOSE")
     NewConnection[serverIP] := serverIP
-    userName[NickName] := serverIP
+    userName[EdNick] := serverIP
     nameFromSocket[000] := "Server"
 
-    if (!Nickname)
+    if (!EdNick)
     {
-        msgbox, Please choose a nickname
+        msgbox, Please choose a Nickname
         return
     }
-    Gui, ServMain: Default
-    LV_Add("", "", NickName)
+    Gui, Main: Default
+    LV_Add("", "", EdNick)
 return
 
 WS_OnAccept(socket){
@@ -64,7 +65,7 @@ WS_OnAccept(socket){
 
 ; Send to Multiple clients
 WS_OnRead(socket){
-    global Log, LogID, NewConnection, sci, userCodes, userName, nameFromSocket, NickName
+    global Log, LogID, NewConnection, sci, userCodes, userName, nameFromSocket, EdNick
 
     WS_Recv(socket, ClientMessage)
     msgType :=  SubStr(ClientMessage, 1 , 6)
@@ -80,11 +81,11 @@ WS_OnRead(socket){
    			if (key != 000)
 				WS_Send(key, "USLS||" . nameFromSocket[socket] . "||" . nickList)
         
-        StringReplace, nickList, nickList, %NickName%%a_space%,,A
+        StringReplace, nickList, nickList, %EdNick%%a_space%,,A
         sci[1].SetKeywords(1,nl:=nickList)
         
         ;========Update Server listview main====
-    	Gui, ServMain: Default
+    	Gui, Main: Default
     	lV_Delete()
     	Loop, Parse, nickList, %A_Space%
     		if (A_LoopField != "Server")
@@ -114,7 +115,7 @@ WS_OnRead(socket){
     			WS_Send(NewConnection[key], "NWCD||" . nameFromSocket[socket])
 
         ;=========== Update Server code window ListView ===================;
-    	Gui, ServCode: Default
+    	Gui, Code: Default
         sci[1].AddText(strlen(str := "Notice: New code from """ . nameFromSocket[socket] . """`n"), str), sci[1].ScrollCaret()
     	loop % LV_GetCount()
     	{
@@ -138,7 +139,7 @@ WS_OnRead(socket){
 WS_OnCLose(socket){
 	global NewConnection, userCodes, userName, nameFromSocket
 
-		Gui, ServMain: Default
+		Gui, Main: Default
 		loop % LV_GetCount()
 		{
 			LV_GetText(nm, A_Index, 2)
@@ -156,7 +157,7 @@ WS_OnCLose(socket){
 	nameFromSocket.Remove(socket, "")
 }
 
-ServMainGuiClose:
+MainGuiClose:
 ExitRoutine:
 	WS_CloseSocket(NewConnection)
 	WS_CloseSocket(server)

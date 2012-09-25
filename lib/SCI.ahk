@@ -48,7 +48,6 @@ class scintilla {
             {
                 ; it is a scintilla identifier
                 ; resolve the identifier to its numerical value
-
                 wParam := !(wParam+1) ? SCI(wParam) : wParam
                 lParam := !(lParam+1) ? SCI(lParam) : lParam
             }
