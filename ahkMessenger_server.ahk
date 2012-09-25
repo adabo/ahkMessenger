@@ -13,35 +13,46 @@
 #include <chatGUI>
 #singleinstance force
 
-NickName := "Server"
+
 OnExit, ExitRoutine
 
 ; Variables/Objects
-NewConnection := Object()
-userCodes := Object()
-userName := Object()
-nameFromSocket := Object()
-serverIP := "000"
+    NewConnection := Object()
+    userCodes := Object()
+    userName := Object()
+    nameFromSocket := Object()
+    serverIP := "000"
 
 ; GUI
 	CreateServerGui()
+    NickName := sEdNick
+    if (NickName != "Server")
+    {
+        msgbox, The server nick MUST be: "Server"!
+        return
+    }
+    else if (!sEdServIP)
+        return
+    ; Initialize
+    WS_LOGTOCONSOLE := 1
+    WS_Startup()
 
-; Initialize
-	WS_LOGTOCONSOLE := 1
-	WS_Startup()
-
-; Port/Socket setup
-	server := WS_Socket("TCP", "IPv4")
-	WS_Bind(server, "0.0.0.0", "12345")
-	WS_Listen(server)
-	WS_HandleEvents(server, "ACCEPT READ CLOSE")
-	NewConnection[serverIP] := serverIP
+    ; Port/Socket setup
+    server := WS_Socket("TCP", "IPv4")
+    WS_Bind(server, EdServIP, "12345")
+    WS_Listen(server)
+    WS_HandleEvents(server, "ACCEPT READ CLOSE")
+    NewConnection[serverIP] := serverIP
     userName[NickName] := serverIP
     nameFromSocket[000] := "Server"
 
+    if (!Nickname)
+    {
+        msgbox, Please choose a nickname
+        return
+    }
     Gui, ServMain: Default
     LV_Add("", "", NickName)
-
 return
 
 WS_OnAccept(socket){
@@ -64,7 +75,6 @@ WS_OnRead(socket){
     	nameFromSocket[socket] := ClientMessage
 	    for key, value in nameFromSocket
 	    	nickList .= value . " "
-	    ;msgbox, %nickList%
 	    for key, value in NewConnection
    			if (key != 000)
 				WS_Send(key, "USLS||" . nameFromSocket[socket] . "||" . nickList)
@@ -78,8 +88,8 @@ WS_OnRead(socket){
     	Loop, Parse, nickList, %A_Space%
     		if (A_LoopField != "Server")
 				LV_Add("" ,"", A_LoopField) ;The username
+        sci[1].AddText(strLen(str:=ClientMessage . "has connected.`n"), str), sci[1].ScrollCaret()
         ;=======================================
-
     }
     else if (msgType == "MESG||")
     {
@@ -102,6 +112,7 @@ WS_OnRead(socket){
 
         ;=========== Update Server code window ListView ===================;
     	Gui, ServCode: Default
+        sci[1].AddText(strlen(str := "Notice: New code from """ . nameFromSocket[socket] . """`n"), str), sci[1].ScrollCaret()
     	loop % LV_GetCount()
     	{
     		LV_GetText(rowText, A_Index, 2)

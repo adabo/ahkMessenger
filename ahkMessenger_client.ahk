@@ -16,19 +16,18 @@ Author: adabo, RaptorX
 #singleinstance force
 ; test := true
 
-NickName := A_UserName
+;NickName := A_UserName
 OnExit, ExitRoutine
 
 ; GUI
     CreateClientGui()
 
-; Initialize
-	;WS_LOGTOCONSOLE := 1
+    ;WS_LOGTOCONSOLE := 1
 	WS_Startup()
-    
-; Port/Socket setup
+
+	;Port/Socket setup
 	client := WS_Socket("TCP", "IPv4")
-	WS_Connect(client, test ? "127.0.0.1" : "99.23.4.199", "12345")
+	WS_Connect(client, t ? "127.0.0.1" : "99.23.4.199", "12345")
 	WS_HandleEvents(client, "READ")
 	WS_Send(client, "USRN||" . NickName)
 return
@@ -46,7 +45,7 @@ WS_OnRead(socket){
     {
 
     	RegexMatch(ServerMessage, "^(.+?)\|\|", match)
-        StringTrimLeft, ServerMessage, ServerMessage, 6
+        StringTrimLeft, ServerMessage, ServerMessage, strLen(match1) + 2
     	
     	Gui, CltMain: Default
     	lV_Delete()
@@ -112,7 +111,7 @@ WS_OnRead(socket){
 		;===================================================================;
 
 		LV_ModifyCol(1)
-		sci[1].AddText(strLen(str:= "Notice: New code from: """ . ServerMessage . """"), str)
+		sci[1].AddText(strLen(str:= "Notice: New code from: """ . ServerMessage . """`n"), str)
 	}
 	else if (msgType == "DISC||")
 	{

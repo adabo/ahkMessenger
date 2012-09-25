@@ -7,8 +7,15 @@
 
     Gui, CltMain: Add, ListView, x420 y6 w120 h198 -Hdr -Multi, Icon|Users
     Gui, CltMain: Add, Edit, x10 y210 w530 -WantReturn vGuiMessage -0x100
-    Gui, CltMain: Add, Button, x10 Default gcSendMessage, Send
+    Gui, CltMain: Add, Button, x10 yp30 Default gcSendMessage, Send
     Gui, CltMain: Add, Button, x10 xp40 yp gcCodeWin, Code
+    Gui, CltMain: Add, GroupBox, xp46 yp-6 w444
+    Gui, CltMain: Add, Text, x108 y260, Nickname:
+    Gui, CltMain: Add, Edit, xp56 yp-2 w100 vcEdNick, Guest%A_TickCount%
+    Gui, CltMain: Add, Text, xp140 y260, Server:
+    Gui, CltMain: Add, Edit, xp50 yp-2 w100 vcEdServIP Disabled, 99.23.4.199
+    Gui, CltMain: Add, Button, xp118 yp4 gcConnectToServer, Connect  
+    Gui, CltMain: Add, CheckBox, xp yp-18 gcDisableIP vTest Checked1 , Test
 
     Gui, CltCode: Default
     Gui, CltCode: +LastFound
@@ -26,6 +33,20 @@
 
     setup_Scintilla(sci, NickName)
     Gui, CltMain:Show
+    Pause, On
+
+    cConnectToServer:
+        Pause, Off
+        Gui, CltMain: Submit, NoHide
+        Nickname := cEdNick
+    return
+
+    cDisableIP:
+        Gui, CltMain: Submit, NoHide
+        if (test)
+            GuiControl, CltMain: Disable, cEdServIP
+         else
+             GuiControl, CltMain: Enable, cEdServIP
     return
 
     cCodeWin:
@@ -65,8 +86,14 @@ CreateServerGui(){
     
     Gui, ServMain: Add, ListView, x420 y6 w120 h198 -Hdr -Multi, Icon|Users
 	Gui, ServMain: Add, Edit, x10 y210 w530 -WantReturn vGuiMessage -0x100
-	Gui, ServMain: Add, Button, x10 Default gsSendMessage, Send
+	Gui, ServMain: Add, Button, x10 yp30 Default gsSendMessage, Send
 	Gui, ServMain: Add, Button, x10 xp40 yp gsCodeWin, Code
+    Gui, ServMain: Add, GroupBox, xp46 yp-6 w444
+    Gui, ServMain: Add, Text, x108 y260, Nickname:
+    Gui, ServMain: Add, Edit, xp56 yp-2 w100 vsEdNick, Server
+    Gui, ServMain: Add, Text, xp140 y260, Server:
+    Gui, ServMain: Add, Edit, xp50 yp-2 w100 -Number vsEdServIP, 0.0.0.0
+    ;Gui, ServMain: Add, Button, xp128 yp-2 gsConnectToServer, Connect
 	
 	Gui, ServCode: Default
     Gui, ServCode: +LastFound
@@ -84,18 +111,19 @@ CreateServerGui(){
 	Gui, ServCode: Add, Button, x10 y410 gsSendCode, Send ;Sends to server
 
     setup_Scintilla(sci, NickName)
-	Gui, ServMain:Show
+    Gui, ServMain: Submit, NoHide
+    Gui, ServMain:Show
     return
     
     sSendMessage:
-	Gui, Submit, NoHide
-	if (!GuiMessage)
-		return
-	for key, value in NewConnection
-		if (NewConnection[key] != 999)
-			WS_Send(NewConnection[key], "MESG||" . NickName . ": " . GuiMessage)
-    sci[1].AddText(strLen(str:=NickName ": " GuiMessage "`n"), str), sci[1].ScrollCaret()
-	GuiControl, ServMain:, GuiMessage
+    	Gui, ServMain: Submit, NoHide
+    	if (!GuiMessage)
+    		return
+    	for key, value in NewConnection
+    		if (NewConnection[key] != 999)
+    			WS_Send(NewConnection[key], "MESG||" . NickName . ": " . GuiMessage)
+        sci[1].AddText(strLen(str:=NickName ": " GuiMessage "`n"), str), sci[1].ScrollCaret()
+    	GuiControl, ServMain:, GuiMessage
     return
 
     sCodeWin:
