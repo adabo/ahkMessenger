@@ -29,15 +29,16 @@
     IL_Add(ImageListID, "shell32.dll", 291)
     Gui, CltCode: Font, s8, Tahoma
     Gui, CltCode: Add, Button, x10 y410 gcSendCode, Send ;Sends to server
-
-    setup_Scintilla(sci, NickName)
-    Gui, CltMain:Show
+    
+    setup_Scintilla(sci)
+    
+    Gui, CltMain:Show,,ahkMessenger Client
     Pause, On
 
     cConnectToServer:
         Pause, Off
         Gui, CltMain: Submit, NoHide
-        Nickname := cEdNick
+        setup_Scintilla(sci, cEdNick)
     return
 
     cDisableIP:
@@ -56,7 +57,7 @@
         Gui, CltMain:Submit, NoHide
         if (!GuiMessage)
             return
-        WS_Send(client, "MESG||" . NickName . ": " . GuiMessage)
+        WS_Send(client, "MESG||" . cEdNick . ": " . GuiMessage)
         GuiControl, CltMain:, GuiMessage
     return
 
@@ -107,10 +108,10 @@ CreateServerGui(){
 
 	Gui, ServCode: Font, s8, Tahoma
 	Gui, ServCode: Add, Button, x10 y410 gsSendCode, Send ;Sends to server
-
-    setup_Scintilla(sci, NickName)
     Gui, ServMain: Submit, NoHide
-    Gui, ServMain:Show
+
+    setup_Scintilla(sci, sEdNick)
+    Gui, ServMain:Show,,ahkMessenger Server
     return
     
     sSendMessage:
@@ -119,8 +120,8 @@ CreateServerGui(){
     		return
     	for key, value in NewConnection
     		if (NewConnection[key] != 000)
-    			WS_Send(NewConnection[key], "MESG||" . NickName . ": " . GuiMessage)
-        sci[1].AddText(strLen(str:=NickName ": " GuiMessage "`n"), str), sci[1].ScrollCaret()
+    			WS_Send(NewConnection[key], "MESG||" . sEdNick . ": " . GuiMessage)
+        sci[1].AddText(strLen(str:=sEdNick ": " GuiMessage "`n"), str), sci[1].ScrollCaret()
     	GuiControl, ServMain:, GuiMessage
     return
 
@@ -143,7 +144,7 @@ CreateServerGui(){
 
         for key, value in NewConnection
             if (NewConnection[key] != 000)
-                WS_Send(NewConnection[key], "NWCD||" . NickName)
+                WS_Send(NewConnection[key], "NWCD||" . sEdNick)
     return
 
     sListViewNotifications:

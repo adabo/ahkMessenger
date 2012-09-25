@@ -171,7 +171,7 @@ Add(hParent, x=5, y=5, w=590, h=390, Styles="", DllPath="", MsgHandler=""){
     old!="SCI_onNotify" ? SCI("oldNotify", RegisterCallback(old)) : null
 
     if !SCIModule:=DllCall("LoadLibrary", "Str", DllPath)
-        return debug ? A_ThisFunc "> Could not load library: " DllPath : -1
+        return debug ? A_ThisFunc "> Could not load library: " DllPath : 1
 
     hStyle := WS_CHILD | (VISIBILITY := InStr(Styles, "Hidden") ? 0 : WS_VISIBLE) | WS_TABSTOP
 

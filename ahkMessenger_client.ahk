@@ -14,9 +14,7 @@ Author: adabo, RaptorX
 #include <SCI>
 #include <chatGUI>
 #singleinstance force
-; test := true
 
-;NickName := A_UserName
 OnExit, ExitRoutine
 
 ; GUI
@@ -27,13 +25,13 @@ OnExit, ExitRoutine
 
 	;Port/Socket setup
 	client := WS_Socket("TCP", "IPv4")
-	WS_Connect(client, t ? "127.0.0.1" : "99.23.4.199", "12345")
+	WS_Connect(client, test ? "127.0.0.1" : "99.23.4.199", "12345")
 	WS_HandleEvents(client, "READ")
-	WS_Send(client, "USRN||" . NickName)
+	WS_Send(client, "USRN||" . cEdNick)
 return
 
 WS_OnRead(socket){
-	Global sci, CodeID, NickName, nickList
+	Global sci, CodeID, cEdNick, nickList
 	static firstVist
 	
 	WS_Recv(socket, ServerMessage)
@@ -51,9 +49,9 @@ WS_OnRead(socket){
     	lV_Delete()
     	Loop, Parse, ServerMessage, %A_Space%
 			LV_Add("" ,"", A_LoopField) ;The username
-        StringReplace, nickList, ServerMessage, %NickName%%a_space%,,A
+        StringReplace, nickList, ServerMessage, %cEdNick%%a_space%,,A
         sci[1].SetKeywords(1,nickList)
-        sci[1].AddText(strLen(str := match1 . " has connected.`n"), str), sci.ScrollCaret()
+        sci[1].AddText(strLen(str := "Notice: " match1 . " has connected.`n"), str), sci.ScrollCaret()
     }
 	else if (msgType == "CODE||")
 	{
@@ -75,6 +73,8 @@ WS_OnRead(socket){
 	}
 	else if (msgType == "MESG||")
 	{
+        IfWinnotActive, ahkMessenger Client
+            soundplay, *48
     	sci[1].AddText(strLen(str:=ServerMessage "`n"), str), sci[1].ScrollCaret()
 	}
 	else if (msgType == "NWCD||")

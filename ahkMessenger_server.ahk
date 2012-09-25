@@ -33,13 +33,14 @@ OnExit, ExitRoutine
     }
     else if (!sEdServIP)
         return
+    
     ; Initialize
     WS_LOGTOCONSOLE := 1
     WS_Startup()
 
     ; Port/Socket setup
     server := WS_Socket("TCP", "IPv4")
-    WS_Bind(server, EdServIP, "12345")
+    WS_Bind(server, sEdServIP, "12345")
     WS_Listen(server)
     WS_HandleEvents(server, "ACCEPT READ CLOSE")
     NewConnection[serverIP] := serverIP
@@ -88,11 +89,13 @@ WS_OnRead(socket){
     	Loop, Parse, nickList, %A_Space%
     		if (A_LoopField != "Server")
 				LV_Add("" ,"", A_LoopField) ;The username
-        sci[1].AddText(strLen(str:=ClientMessage . "has connected.`n"), str), sci[1].ScrollCaret()
+        sci[1].AddText(strLen(str:="Notice: " ClientMessage . " has connected.`n"), str), sci[1].ScrollCaret()
         ;=======================================
     }
     else if (msgType == "MESG||")
     {
+        IfWinnotActive, ahkMessenger Server
+            soundplay, *48
    		for key, value in NewConnection
    			if (NewConnection[key] != 000)
 				WS_Send(NewConnection[key], "MESG||" . ClientMessage)
