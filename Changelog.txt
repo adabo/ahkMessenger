@@ -13,7 +13,18 @@ Legend:
     $ Disable
 ==================
 
-commit 8003b67e4378aae7baffa4deb5f48f48026ce1e7
+commit 0039ee53306e9e21e9bdf77f061f6ed791c26a85
+Author: RaptorX <graptorx@gmail.com>
+Date:   Wed Sep 26 22:31:33 2012 +0200
+
+    ahkMessenger v0.19
+    
+    Changes:
+    
+    ! Fix Code GUI bug with sending text
+    ! Fix Code GUI bug with 0x character
+
+commit a411caa1f175c676ab10475768ee488be0258b5a
 Author: RaptorX <graptorx@gmail.com>
 Date:   Wed Sep 26 01:00:53 2012 +0200
 
@@ -58,19 +69,3 @@ Date:   Tue Sep 25 00:40:47 2012 -0500
     Changes:
     
     + Add new user connects
-
-commit 49f3d57dc28bb238977aa856924b755ef64670bb
-Author: Abel Gutierrez <abel4@msn.com>
-Date:   Mon Sep 24 18:04:24 2012 -0500
-
-    ahkMessenger v0.14
-    
-    Changes:
-    
-    + Added Notices from server on: connect, new code
-    * Changed Server code "999" to "000" for stability
-    
-    ToDo:
-    
-    Bug on Code window: If code contains "0x", other clients
-    recieve blank code.

@@ -18,7 +18,7 @@ class scintilla {
               I decided to make most of those operations internally to have cleaner code later on.
             */
 
-            (msg = "GetText") ? (VarSetCapacity(lParam, wParam), lParam := &lParam, buf:=true) : null
+            (msg = "GetText") ? (VarSetCapacity(lParam, wParam * (a_isunicode ? 2 : 1)), lParam := &lParam, buf:=true) : null
             (msg = "GetLine") ? (VarSetCapacity(lParam, this.linelength(wParam)+1 * (a_isunicode ? 2 : 1)), lParam := &lParam, buf:=true) : null
             (msg = "GetTextRange") ? (range:=abs(wParam.1 - wParam.2)+1, dSize :=  sendEditor(this.hwnd, "GetLength")
                                       ,VarSetCapacity(lParam, range > dSize ? (dSize, wParam.2 := dSize) : range)
@@ -28,8 +28,8 @@ class scintilla {
                                       ,NumPut(&lParam,textRange,8,"UInt")
                                       ,blParam := &lParam, wParam := false,lParam := &textRange, buf:=true) : null
 
-            inStr(lParam, "0x") ? (lParam := (lParam & 0xFF) <<16 | (lParam & 0xFF00) | (lParam >>16),lParam := SubStr(lParam, 0x1)) : null
-            inStr(wParam, "0x") ? (wParam := (wParam & 0xFF) <<16 | (wParam & 0xFF00) | (wParam >>16),wParam := SubStr(wParam, 0x1)) : null
+            ;inStr(lParam, "0x") ? (lParam := (lParam & 0xFF) <<16 | (lParam & 0xFF00) | (lParam >>16),lParam := SubStr(lParam, 0x1)) : null
+            ;inStr(wParam, "0x") ? (wParam := (wParam & 0xFF) <<16 | (wParam & 0xFF00) | (wParam >>16),wParam := SubStr(wParam, 0x1)) : null
 
             if ((!(wParam+1) && !SCI(wParam)) || (!(lParam+1) && !SCI(lParam))) ; only run this if text received is not one of the SCI variables
             {
@@ -396,7 +396,5 @@ SCI(var, val=""){
         return                                                      ; we dont need to even check for it being a variable name.
 
 	lvar := %var%, val ? %var% := val : null
-    if (var = "SC_MARGIN_SYMBOL")
-        msgbox % lvar " " var
     return lvar
 }

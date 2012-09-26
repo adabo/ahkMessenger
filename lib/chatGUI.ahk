@@ -78,7 +78,7 @@
     return
 
     SendCode:
-        sci[2].GetText(sci[2].GetLength()+1, GuiCode:="")
+        sci[2].GetText(len:=sci[2].GetLength()+1 < 8 ? 8 : len, GuiCode) ; Temporal fix for GetText, because it must have 8+ bytes for it to work correctly
         if (type = "client")
             WS_Send(client, "NWCD||" . GuiCode)
         else if (type "server")
