@@ -5,20 +5,21 @@
     sci := {} ; Scintilla Editor Array
     hwnd := WinExist(), sci[1] := new scintilla(hwnd, 10,0,400,200, "", a_scriptdir "\lib")
     
-    Gui, Main: Add, ListView, x420 y6 w120 h198 -Hdr -Multi, Icon|Users
-    Gui, Main: Add, Edit, x10 y210 w400 -WantReturn vGuiMessage -0x100
-    Gui, Main: Add, Button, x+10 yp w55 Default gSendMessage, Send
-    Gui, Main: Add, Button, x+10 yp w55 gCodeWin, Code
-    Gui, Main: Add, GroupBox, x10 y+10 w530, Connection Settings
-    Gui, Main: Add, Text, xp+30 yp+25, Nickname:
-    Gui, Main: Add, Edit, x+10 yp-3 w100 vEdNick, % (type = "client" ? "Guest" A_TickCount : "Server")
-    Gui, Main: Add, Text, x+40 yp+3, Server:
-    Gui, Main: Add, Edit, xp50 yp-3 w100 vEdServIP Disabled, % (type = "client" ? "99.23.4.199" : "0.0.0.0") 
+    Gui, Main: Add, ListView , x415 y6   w120 h198 -Hdr -Multi, Icon|Users
+    Gui, Main: Add, Edit     , x10  y210 w400     -WantReturn vGuiMessage -0x100
+    Gui, Main: Add, Button   , x415 y210 w55  h23 Default gSendMessage, Send
+    Gui, Main: Add, Button   , x480 y210 w55  h23 gCodeWin, Code
+    Gui, Main: Add, GroupBox , x5   y238 w530 h57, Connection Settings
+    Gui, Main: Add, Text     , x17  y263 w51  h13, Nickname:
+    Gui, Main: Add, Edit     , x78  y260 w100 h21 vEdNick, % (type = "client" ? "Guest" A_TickCount : "Server")
+    Gui, Main: Add, Text     , x258 y263 w34  h13, Server:
+    Gui, Main: Add, Edit     , x308 y260 w100 h21 vEdServIP Disabled, % (type = "client" ? "99.23.4.199" : "0.0.0.0") 
     
     if (type = "client")
     {
-        Gui, Main: Add, Button, x+10 yp w55 gConnectToServer, Connect
-        Gui, Main: Add, CheckBox, x+10 yp+5 gDisableIP vTest Checked1, Test
+        Gui, Main: Add, Button, x186 y260 w55 gChangeNick, Change
+        Gui, Main: Add, Button, x420 y260 w55 h23 gConnectToServer, Connect
+        Gui, Main: Add, CheckBox, x485 y265 w43 h13 gDisableIP vTest Checked1, Test
     }
 
     Gui, Code: Default
@@ -45,13 +46,27 @@
     return
     
     ConnectToServer:
-        setup_Scintilla(sci, EdNick)
-        Pause, Off
+        Gui, Main: Submit, NoHide     ;Necessary to submit Nickname (not scintilla)
+        if (!clientConnected && nickCheck(EdNick))
+        {
+            setup_Scintilla(sci, EdNick)
+            Pause, Off
+            clientConnected++
+        }
+        else
+            msgbox, Please close the window if you need to reconnect.
+
     return
 
     DisableIP:
-        Gui, Submit, NoHide
+        Gui, Main: Submit, NoHide
         GuiControl, % test ? "Disable" : "Enable", EdServIP
+    return
+
+    ChangeNick:
+        Gui, Main: Submit, NoHide
+        if (nickCheck(EdNick))
+            WS_Send(client, "NKCH||" . EdNick)
     return
 
     CodeWin:
@@ -60,8 +75,8 @@
 
     SendMessage:
         Gui, Main: Submit, NoHide
-        ; if (!GuiMessage)
-            ; return
+        if (!GuiMessage)
+            return
         if (type = "client")
         {
             WS_Send(client, "MESG||" . EdNick . ": " . GuiMessage)
@@ -297,4 +312,14 @@ setup_Scintilla(sci, localNick=""){
     ;}
     
     return  controlflow := commands := functions := directives := keysbuttons := variables := specialparams := ""
+}
+
+nickCheck(n){
+        RegexMatch(n, "^(\d)", m)
+        if (!m1 && n != "")
+            verify := 1
+        else
+            msgbox, A nickname cannot be empty and must begin with a letter.`nPlease try again.
+
+        return verify
 }

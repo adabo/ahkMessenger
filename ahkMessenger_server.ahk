@@ -6,6 +6,7 @@
 		RQST|| = Request Code
 		USLS|| = User list
 		DISC|| = User Disconnected
+        NKCH|| = User Changed Nick
 */
 
 #include <ws>
@@ -20,8 +21,8 @@ OnExit, ExitRoutine
 ; Variables/Objects
     NewConnection := Object()
     userCodes := Object()
-    userName := Object()
-    nameFromSocket := Object()
+    userNick := Object()
+    nickFromSocket := Object()
     serverIP := "000"
 
 ; GUI
@@ -45,8 +46,8 @@ OnExit, ExitRoutine
     WS_Listen(server)
     WS_HandleEvents(server, "ACCEPT READ CLOSE")
     NewConnection[serverIP] := serverIP
-    userName[EdNick] := serverIP
-    nameFromSocket[000] := "Server"
+    userNick[EdNick] := serverIP
+    nickFromSocket[000] := "Server"
 
     if (!EdNick)
     {
@@ -65,7 +66,7 @@ WS_OnAccept(socket){
 
 ; Send to Multiple clients
 WS_OnRead(socket){
-    global Log, LogID, NewConnection, sci, userCodes, userName, nameFromSocket, EdNick
+    global Log, LogID, NewConnection, sci, userCodes, userNick, nickFromSocket, EdNick
 
     WS_Recv(socket, ClientMessage)
     msgType :=  SubStr(ClientMessage, 1 , 6)
@@ -73,23 +74,23 @@ WS_OnRead(socket){
 
     if (msgType == "USRN||")
     {
-    	userName[ClientMessage] := socket
-    	nameFromSocket[socket] := ClientMessage
-	    for key, value in nameFromSocket
-	    	nickList .= value . " "
-	    for key, value in NewConnection
-   			if (key != 000)
-				WS_Send(key, "USLS||" . nameFromSocket[socket] . "||" . nickList)
+        userNick[ClientMessage] := socket
+        nickFromSocket[socket] := ClientMessage
+        for key, value in nickFromSocket
+            nickList .= value . " "
+        for key, value in NewConnection
+            if (key != 000)
+                WS_Send(key, "USLS||" . nickFromSocket[socket] . "||" . nickList)
         
         StringReplace, nickList, nickList, %EdNick%%a_space%,,A
         sci[1].SetKeywords(1,nl:=nickList)
         
         ;========Update Server listview main====
-    	Gui, Main: Default
-    	lV_Delete()
-    	Loop, Parse, nickList, %A_Space%
-    		if (A_LoopField != "Server")
-				LV_Add("" ,"", A_LoopField) ;The username
+        Gui, Main: Default
+        lV_Delete()
+        Loop, Parse, nickList, %A_Space%
+            if (A_LoopField != "Server")
+                LV_Add("" ,"", A_LoopField) ;The userNick
         sci[1].AddText(strLen(str:="Notice: " ClientMessage . " has connected.`n"), str), sci[1].ScrollCaret()
         ;=======================================
     }
@@ -97,69 +98,92 @@ WS_OnRead(socket){
     {
         IfWinnotActive, ahkMessenger Server
             soundplay, *48
-   		for key, value in NewConnection
-   			if (NewConnection[key] != 000)
-				WS_Send(NewConnection[key], "MESG||" . ClientMessage)
-		sci[1].AddText(strLen(str:=ClientMessage "`n"), str), sci[1].ScrollCaret()
+        for key, value in NewConnection
+            if (NewConnection[key] != 000)
+                WS_Send(NewConnection[key], "MESG||" . ClientMessage)
+        sci[1].AddText(strLen(str:=ClientMessage "`n"), str), sci[1].ScrollCaret()
     }
     else if (msgType == "RQST||")
     {
-        skt := userName[ClientMessage]
-		WS_Send(socket, "CODE||" . ClientMessage . "||" . userCodes[skt])
+        skt := userNick[ClientMessage]
+        WS_Send(socket, "CODE||" . ClientMessage . "||" . userCodes[skt])
     }
     else if (msgType == "NWCD||")
     {
-    	userCodes[socket] := ClientMessage
-    	for key, value in NewConnection
-    		if (NewConnection[key] != 000)
-    			WS_Send(NewConnection[key], "NWCD||" . nameFromSocket[socket])
+        userCodes[socket] := ClientMessage
+        for key, value in NewConnection
+            if (NewConnection[key] != 000)
+                WS_Send(NewConnection[key], "NWCD||" . nickFromSocket[socket])
 
         ;=========== Update Server code window ListView ===================;
-    	Gui, Code: Default
-        sci[1].AddText(strlen(str := "Notice: New code from """ . nameFromSocket[socket] . """`n"), str), sci[1].ScrollCaret()
-    	loop % LV_GetCount()
-    	{
-    		LV_GetText(rowText, A_Index, 2)
-    		if (nameFromSocket[socket] == rowText)
-    		{
-    			namExist := True
-    			LV_Modify(A_Index, "Icon" . 1, "")
-    			break
-    		}
-    		else
-    			namExist := False
-    	}
-    	if (!namExist)
-			LV_Add("Icon" . 1,"", nameFromSocket[socket])
+        Gui, Code: Default
+        sci[1].AddText(strlen(str := "Notice: New code from """ . nickFromSocket[socket] . """`n"), str), sci[1].ScrollCaret()
+        loop % LV_GetCount()
+        {
+            LV_GetText(rowText, A_Index, 2)
+            if (nickFromSocket[socket] == rowText)
+            {
+                namExist := True
+                LV_Modify(A_Index, "Icon" . 1, "")
+                break
+            }
+            else
+                namExist := False
+        }
+        if (!namExist)
+            LV_Add("Icon" . 1,"", nickFromSocket[socket])
         ;===================================================================;
+    }
+    else if(msgType == "NKCH||")
+    {
+
+        oldNick := nickFromSocket[socket]
+        nickFromSocket[socket] := ClientMessage
+        for key, value in nickFromSocket
+            nickList .= value . " "
+        for key, value in NewConnection
+            if (key != 000)
+                WS_Send(key, "NKCH||" . oldNick . "||" . ClientMessage . "||" . nickList)
+        
+        StringReplace, nickList, nickList, %EdNick%%a_space%,,A
+        sci[1].SetKeywords(1,nl:=nickList)
+        
+        ;========Update Server listview main====
+        Gui, Main: Default
+        lV_Delete()
+        Loop, Parse, nickList, %A_Space%
+            if (A_LoopField != "Server")
+                LV_Add("" ,"", A_LoopField) ;The userNick
+        sci[1].AddText(strLen(str:="Notice: " oldNick . " has changed their nick to: " . ClientMessage . "`n"), str), sci[1].ScrollCaret()
+        ;=======================================
     }
 }
 
 ; Remove client from array
 WS_OnCLose(socket){
-	global NewConnection, userCodes, userName, nameFromSocket
+    global NewConnection, userCodes, userNick, nickFromSocket
 
-		Gui, Main: Default
-		loop % LV_GetCount()
-		{
-			LV_GetText(nm, A_Index, 2)
-			if (nameFromSocket[socket] == nm)
-				lV_Delete(A_Index)
-		}
+        Gui, Main: Default
+        loop % LV_GetCount()
+        {
+            LV_GetText(nm, A_Index, 2)
+            if (nickFromSocket[socket] == nm)
+                lV_Delete(A_Index)
+        }
 
-	for key, value in NewConnection
-		if (NewConnection[key] != 000)
-			WS_Send(value, "DISC||" . nameFromSocket[socket])
+    for key, value in NewConnection
+        if (NewConnection[key] != 000)
+            WS_Send(value, "DISC||" . nickFromSocket[socket])
 
-	userCodes.Remove(socket, "")
-	userName.Remove(nameFromSocket[socket])
-	NewConnection.Remove(socket, "")
-	nameFromSocket.Remove(socket, "")
+    userCodes.Remove(socket, "")
+    userNick.Remove(nickFromSocket[socket])
+    NewConnection.Remove(socket, "")
+    nickFromSocket.Remove(socket, "")
 }
 
 MainGuiClose:
 ExitRoutine:
-	WS_CloseSocket(NewConnection)
-	WS_CloseSocket(server)
-	WS_Shutdown()
+    WS_CloseSocket(NewConnection)
+    WS_CloseSocket(server)
+    WS_Shutdown()
 ExitApp

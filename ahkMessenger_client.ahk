@@ -8,6 +8,7 @@ Author: adabo, RaptorX
 		USRN|| = User name
 		RQST|| = Request Code
 		USLS|| = User list
+        NKCH|| = User Changed Nick
 */
 
 #include <ws>
@@ -123,6 +124,23 @@ WS_OnRead(socket){
 					lV_Delete(A_Index)
 		}
 	}
+    else if(msgType == "NKCH||")
+    {
+    	RegexMatch(ServerMessage, "^(.+?)\|\|", gOldNick) ; Old nick
+    	StringTrimLeft, ServerMessage, ServerMessage, strLen(gOldNick1) + 2
+
+    	RegexMatch(ServerMessage, "^(.+?)\|\|", gNewNick) ; Old nick
+    	StringTrimLeft, ServerMessage, ServerMessage, strLen(gNewNick1) + 2
+    	
+       	Gui, Main: Default
+    	lV_Delete()
+    	Loop, Parse, ServerMessage, %A_Space%
+			LV_Add("" ,"", A_LoopField) ;The username
+        StringReplace, nickList, ServerMessage, %EdNick%%a_space%,,A
+        sci[1].SetKeywords(1,nickList)
+        sci[1].AddText(strLen(str:="Notice: " gOldNick1 . " has changed their nick to: " . gNewNick1 . "`n"), str), sci[1].ScrollCaret()
+    }
+
 }
 
 MainGuiClose:
