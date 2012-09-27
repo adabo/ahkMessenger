@@ -1,26 +1,65 @@
-﻿CreateGui(){
+﻿/******
+
+    Legend:
+
+    mELog = Edit chat Log
+    mLUsl = Listview User List
+    mESmg = Edit Send Message
+    mBSmg = Button Send Message
+    mBCde = Button Code
+    mGCon = GroupBox Connection settings
+    mTNkN = Text NickName
+    mENkN = Edit NickName
+    mTSIP = Text Server IP
+    mESIP = Edit Server IP
+    mBCNk = Button Change NickName
+    mBCon = Button Connect
+    mCTst = CheckBox Test
+
+*******/
+CreateGui(){
     global
 
     Gui, Main: +LastFound
     sci := {} ; Scintilla Editor Array
-    hwnd := WinExist(), sci[1] := new scintilla(hwnd, 10,0,400,200, "", a_scriptdir "\lib")
-    
-    Gui, Main: Add, ListView , x415 y6   w120 h198 -Hdr -Multi, Icon|Users
-    Gui, Main: Add, Edit     , x10  y210 w400     -WantReturn vGuiMessage -0x100
-    Gui, Main: Add, Button   , x415 y210 w55  h23 Default gSendMessage, Send
-    Gui, Main: Add, Button   , x480 y210 w55  h23 gCodeWin, Code
-    Gui, Main: Add, GroupBox , x5   y238 w530 h57, Connection Settings
-    Gui, Main: Add, Text     , x17  y263 w51  h13, Nickname:
-    Gui, Main: Add, Edit     , x78  y260 w100 h21 vEdNick, % (type = "client" ? "Guest" A_TickCount : "Server")
-    Gui, Main: Add, Text     , x258 y263 w34  h13, Server:
-    Gui, Main: Add, Edit     , x308 y260 w100 h21 vEdServIP Disabled, % (type = "client" ? "99.23.4.199" : "0.0.0.0") 
-    
-    if (type = "client")
-    {
-        Gui, Main: Add, Button, x186 y260 w55 gChangeNick, Change
-        Gui, Main: Add, Button, x420 y260 w55 h23 gConnectToServer, Connect
-        Gui, Main: Add, CheckBox, x485 y265 w43 h13 gDisableIP vTest Checked1, Test
+    mELog := WinExist(), sci[1] := new scintilla(mELog, 10,0,400,200, "", a_scriptdir "\lib")
+
+    Menu, mMenuBar, Add, Edit
+    Menu, mMenuBar, Add, View
+    Menu, mMenuBar, Add, Tools
+    Gui, Main: +Resize MinSize545x324
+    Gui, Main: Menu, mMenuBar
+    Gui, Main: Add, StatusBar
+    Gui, Main: Add, ListView , x415 y6   w120 h198 HwndmLUsl -Hdr -Multi, Icon|Users
+    Gui, Main: Add, Edit     , x10  y210 w400      HwndmESmg -WantReturn vGuiMessage -0x100
+    Gui, Main: Add, Button   , x415 y210 w55  h23  HwndmBSmg Default gSendMessage, Send
+    Gui, Main: Add, Button   , x480 y210 w55  h23  HwndmBCde gCodeWin, Code
+    Gui, Main: Add, GroupBox , x5   y238 w530 h57  HwndmGCon, Connection Settings
+    Gui, Main: Add, Text     , x17  y263 w51  h13  HwndmTNkN, Nickname:
+    Gui, Main: Add, Edit     , x78  y260 w100 h21  HwndmENkN vEdNick, % (type = "client" ? "Guest" A_TickCount : "Server")
+    Gui, Main: Add, Text     , x258 y263 w34  h13  HwndmTSIP , Server:
+    Gui, Main: Add, Edit     , x308 y260 w100 h21  HwndmESIP vEdServIP Disabled, % (type = "client" ? "99.23.4.199" : "0.0.0.0") 
+
+    if (type = "client")                           
+    {                                              
+        Gui, Main: Add, Button, x186 y260 w55       HwndmBCNk gChangeNick, Change
+        Gui, Main: Add, Button, x420 y260 w55 h23   HwndmBCon gConnectToServer, Connect
+        Gui, Main: Add, CheckBox, x485 y265 w43 h13 HwndmCTst gDisableIP vTest Checked1, Test
     }
+
+    Attach(mELog, "w h r")
+    Attach(mLUsl, "x h r")
+    Attach(mESmg, "y w r")
+    Attach(mBSmg, "x y r")
+    Attach(mBCde, "x y r")
+    Attach(mGCon, "y w r")
+    Attach(mTNkN, "y r")
+    Attach(mENkN, "y r")
+    Attach(mTSIP, "y r")
+    Attach(mESIP, "y r")
+    Attach(mBCNk, "y r")
+    Attach(mBCon, "y r")
+    Attach(mCTst, "y r")
 
     Gui, Code: Default
     Gui, Code: +LastFound
@@ -130,6 +169,29 @@
             }
         }
     return
+
+
+    ; Menu Labels
+    Edit:
+        if (A_ThisMenu == "mMenuBar")
+            ToolTip, Main GUI %A_ThisMenuItem%
+        else if (A_ThisMenu == "cMenuBar")
+            ToolTip, Code GUI %A_ThisMenuItem%
+    return
+
+    View:
+        if (A_ThisMenu == "mMenuBar")
+            ToolTip, Main GUI %A_ThisMenuItem%
+        else if (A_ThisMenu == "cMenuBar")
+            ToolTip, Code GUI %A_ThisMenuItem%
+    return
+
+    Tools:
+        if (A_ThisMenu == "mMenuBar")
+            ToolTip, Main GUI %A_ThisMenuItem%
+        else if (A_ThisMenu == "cMenuBar")
+            ToolTip, Code GUI %A_ThisMenuItem%
+return
 }
 
 setup_Scintilla(sci, localNick=""){
