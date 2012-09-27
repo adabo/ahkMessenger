@@ -1,4 +1,4 @@
-﻿/******
+﻿/*
 
     Legend:
 
@@ -16,7 +16,7 @@
     mBCon = Button Connect
     mCTst = CheckBox Test
 
-*******/
+*/
 CreateGui(){
     global
 
