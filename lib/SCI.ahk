@@ -2,14 +2,17 @@
 class scintilla {
     static hwnd := ""
 
-    __new(param*){
-        this.hwnd := Add(param*)
+    __new(params*){
+        if (params.MaxIndex()) 
+            this.hwnd := __Add(params*)
+        else
+            return this
     }
 
-    __call(msg, ByRef wParam=0, ByRef lParam=0, param*){
-
+    __call(msg, ByRef wParam=0, ByRef lParam=0, params*){
+    
         if (msg = "Add")
-            this.hwnd := Add(wParam, lParam, param*)
+            this.hwnd := __Add(wParam, lParam, params*)
         else
         {
             /*
@@ -20,7 +23,7 @@ class scintilla {
 
             (msg = "GetText") ? (VarSetCapacity(lParam, wParam * (a_isunicode ? 2 : 1)), lParam := &lParam, buf:=true) : null
             (msg = "GetLine") ? (VarSetCapacity(lParam, this.linelength(wParam)+1 * (a_isunicode ? 2 : 1)), lParam := &lParam, buf:=true) : null
-            (msg = "GetTextRange") ? (range:=abs(wParam.1 - wParam.2)+1, dSize :=  sendEditor(this.hwnd, "GetLength")
+            (msg = "GetTextRange") ? (range:=abs(wParam.1 - wParam.2)+1, dSize :=  __sendEditor(this.hwnd, "GetLength")
                                       ,VarSetCapacity(lParam, range > dSize ? (dSize, wParam.2 := dSize) : range)
                                       ,VarSetCapacity(textRange, 12, 0)
                                       ,NumPut(wParam.1,textRange,0,"UInt")
@@ -31,7 +34,7 @@ class scintilla {
             ;inStr(lParam, "0x") ? (lParam := (lParam & 0xFF) <<16 | (lParam & 0xFF00) | (lParam >>16),lParam := SubStr(lParam, 0x1)) : null
             ;inStr(wParam, "0x") ? (wParam := (wParam & 0xFF) <<16 | (wParam & 0xFF00) | (wParam >>16),wParam := SubStr(wParam, 0x1)) : null
 
-            if ((!(wParam+1) && !SCI(wParam)) || (!(lParam+1) && !SCI(lParam))) ; only run this if text received is not one of the SCI variables
+            if ((!(wParam+1) && !__SCI(wParam)) || (!(lParam+1) && !__SCI(lParam))) ; only run this if text received is not one of the SCI variables
             {
                 ; check if we are passing text in unicode build. If so, convert to ANSI
                 ; and store the pointer because sendEditor only works with pointers
@@ -48,113 +51,116 @@ class scintilla {
             {
                 ; it is a scintilla identifier
                 ; resolve the identifier to its numerical value
-                wParam := !(wParam+1) ? SCI(wParam) : wParam
-                lParam := !(lParam+1) ? SCI(lParam) : lParam
+                wParam := !(wParam+1) ? __SCI(wParam) : wParam
+                lParam := !(lParam+1) ? __SCI(lParam) : lParam
             }
 
-            res := sendEditor(this.hwnd, msg, wParam, lParam)
+            res := __sendEditor(this.hwnd, msg, wParam, lParam)
 
             ; I must switch lParam to another variable when using GetTextRange because lParam cant be overwriten
             ; It has the pointer to the TextRange Structure
             buf ? (lParam := StrGet((msg = "GetTextRange") ? blParam : &lParam, "CP0"), buf:=false) : null ; convert the text from ANSI
             return res
         }
+    
     }
+
 }
 
 ; | Internal Functions |
 
 /*
-    Function: Add
-    Creates a Scintilla component and adds it to the Parent GUI.
+        Function: __Add
+        Creates a Scintilla component and adds it to the Parent GUI.
 
-    This function initializes the Scintilla Component.
-    See <http://www.scintilla.org/Steps.html> for more information on how to add the component to a GUI/Control.
+        This function initializes the Scintilla Component.
+        See <http://www.scintilla.org/Steps.html> for more information on how to add the component to a GUI/Control.
 
-    Parameters:
-    SCI_Add(hParent, [x, y, w, h, Styles, MsgHandler, DllPath])
+        Parameters:
+        __Add(hParent, [x, y, w, h, Styles, MsgHandler, DllPath])
 
-    hParent     -   Hwnd of the parent control who will host the Scintilla Component
-    x           -   x position for the control (default 5)
-    y           -   y position for the control (default 5)
-    w           -   Width of the control (default 590)
-    h           -   Height of the control (default 390)
-    Styles      -   List of window style variable names separated by spaces.
-                    The WS_ prefix for the variables is optional.
-                    Full list of Style names can be found at
-                    <http://msdn.microsoft.com/en-us/library/ms632600%28v=vs.85%29.aspx>.
+        hParent     -   Hwnd of the parent control who will host the Scintilla Component
+        x           -   x position for the control (default 5)
+        y           -   y position for the control (default 5)
+        w           -   Width of the control (default 590)
+        h           -   Height of the control (default 390)
+        DllPath     -   Path to the SciLexer.dll file, if omitted the function looks for it in *a_scriptdir*.
+        Styles      -   List of window style variable names separated by spaces.
+                        The WS_ prefix for the variables is optional.
+                        Full list of Style names can be found at
+                        <http://msdn.microsoft.com/en-us/library/ms632600%28v=vs.85%29.aspx>.
 
-    DllPath     -   Path to the SciLexer.dll file, if omitted the function looks for it in *a_scriptdir*.
-    MsgHandler  -   Name of the function that will handle the window messages sent by the control.
-                    This is very useful for when creating personalized lexing or folding for your control.
+        MsgHandler  -   Name of the function that will handle the window messages sent by the control.
+                        This is very useful for when creating personalized lexing or folding for your control.
 
-    Returns:
-    HWND - Component handle.
+        Returns:
+        HWND - Component handle.
 
-    Examples:
-    (start code)
-    #include ..\SCI.ahk
-    #singleinstance force
+        Examples:
+        (start code)
+        #include ..\SCI.ahk
+        #singleinstance force
 
-    ; Add a component with default values.
-    ; It expects scilexer.dll to be on the script's location.
-    ; The default values are calculated to fit optimally on a 600x400 GUI/Control
+        ; Add a component with default values.
+        ; It expects scilexer.dll to be on the script's location.
+        ; The default values are calculated to fit optimally on a 600x400 GUI/Control
 
-    Gui +LastFound
-    hwnd:=WinExist(), sci := new scintilla(hwnd)
+        Gui +LastFound
+        sci := new scintilla(WinExist())
 
-    Gui, show, w600 h400
-    return
+        Gui, show, w600 h400
+        return
 
-    GuiClose:
-        exitapp
+        GuiClose:
+            exitapp
 
-    ;---------------------
-    #include ..\SCI.ahk
-    #singleinstance force
+        ;---------------------
+        #include ..\SCI.ahk
+        #singleinstance force
 
-    ; Add a component with default values.
-    ; It expects scilexer.dll to be on the script's location.
-    ; This script also adds some styles.
-    ; As the variables "x,y,w,h" are empty the default values are used.
+        ;---------------------
+        ; Add a component with default values.
+        ; It expects scilexer.dll to be on the script's location.
+        ; This script also adds some styles.
+        ; If variables "x,y,w,h,DllPath" are empty the default values are used.
+        ; We can create the object without any parameters and specify them with the add function below
 
-    Gui +LastFound
-    hwnd:=WinExist(), sci:= new scintilla ; Tip: we can create the object without any parameters and specify them with the add function below
-    sci.Add(hwnd, x, y, w, h, "WS_CHILD WS_BORDER WS_VISIBLE")
+        Gui +LastFound
+        sci:= new scintilla
+        sci.Add(WinExist(), x, y, w, h, DllPath, "WS_CHILD WS_BORDER WS_VISIBLE")
 
-    Gui, show, w600 h400
-    return
+        Gui, show, w600 h400
+        return
 
-    GuiClose:
-        exitapp
+        GuiClose:
 
-    ;---------------------
-    #include ..\SCI.ahk
-    #singleinstance force
+        ;---------------------
+        #include ..\SCI.ahk
+        #singleinstance force
 
-    ; Add a component embedded in a tab with additional code for
-    ; hiding/showing the component depending on which tab is open.
-    ; As variables "x,w,h" are empty the default values are used.
+        ; Add a component embedded in a tab with additional code for
+        ; hiding/showing the component depending on which tab is open.
+        ; As variables "x,w,h" are empty the default values are used.
 
-    sci := new scintilla
-    Gui, add, Tab2, HWNDhwndtab x0 y0 w600 h420 gtabHandler vtabLast,one|two
+        Gui, add, Tab2, HWNDhwndtab x0 y0 w600 h420 gtabHandler vtabLast,one|two
 
-    sci.Add(hwndtab,x,25,w,h,"Child Border Visible","",a_scriptdir "\scilexer.dll")
+        sci := new scintilla
+        sci.Add(hwndtab, x, 25, w, h, a_scriptdir "\scilexer.dll", "Child Border Visible")
 
-    Gui, show, w600 h420
-    return
+        Gui, show, w600 h420
+        return
 
-    tabHandler:                                 ; Tab Handler for the Scintilla Control
-    Gui, submit, Nohide
-    action := tabLast = "one" ? "Show" : "Hide" ; decide which action to take
-    Control,%action%,,, % "ahk_id " sci.hwnd
-    return
+        tabHandler:                                 ; Tab Handler for the Scintilla Control
+        Gui, submit, Nohide
+        action := tabLast = "one" ? "Show" : "Hide" ; decide which action to take
+        Control,%action%,,, % "ahk_id " sci.hwnd
+        return
 
-    GuiClose:
-        exitapp
-    (end)
-*/
-Add(hParent, x=5, y=5, w=590, h=390, Styles="", DllPath="", MsgHandler=""){
+        GuiClose:
+            exitapp
+        (end)
+    */
+__Add(hParent=0, x=5, y=5, w=590, h=390, DllPath="", Styles="", MsgHandler=""){
     static WS_OVERLAPPED:=0x00000000,WS_POPUP:=0x80000000,WS_CHILD:=0x40000000,WS_MINIMIZE:=0x20000000
     ,WS_VISIBLE:=0x10000000,WS_DISABLED:=0x08000000,WS_CLIPSIBLINGS:=0x04000000,WS_CLIPCHILDREN:=0x02000000
     ,WS_MAXIMIZE:=0x01000000,WS_CAPTION:=0x00C00000,WS_BORDER:=0x00800000,WS_DLGFRAME:=0x00400000
@@ -167,7 +173,7 @@ Add(hParent, x=5, y=5, w=590, h=390, Styles="", DllPath="", MsgHandler=""){
     if !init        ;  WM_NOTIFY = 0x4E
         old:=OnMessage(0x4E,"SCI_onNotify"),init:=True
 
-    old!="SCI_onNotify" ? SCI("oldNotify", RegisterCallback(old)) : null
+    old!="SCI_onNotify" ? __SCI("oldNotify", RegisterCallback(old)) : null
 
     if !SCIModule:=DllCall("LoadLibrary", "Str", DllPath)
         return debug ? A_ThisFunc "> Could not load library: " DllPath : 1
@@ -177,24 +183,24 @@ Add(hParent, x=5, y=5, w=590, h=390, Styles="", DllPath="", MsgHandler=""){
     if Styles
         Loop, Parse, Styles, %a_tab%%a_space%, %a_tab%%a_space%
             hStyle |= %a_loopfield%+0 ? %a_loopfield% : WS_%a_loopfield% ? WS_%a_loopfield% : 0
-
+            
     hSci:=DllCall("CreateWindowEx"
-                 ,Uint ,WS_EX_CLIENTEDGE        ; Ex Style
-                 ,Str  ,"Scintilla"             ; Class Name
-                 ,Str  ,""                      ; Window Name
-                 ,UInt ,hStyle                  ; Window Styles
-                 ,Int  ,x ? x : 5               ; x
-                 ,Int  ,y ? y : 5               ; y
-                 ,Int  ,w ? w : 590             ; Width
-                 ,Int  ,h ? h : 390             ; Height
-                 ,UInt ,hParent                 ; Parent HWND
-                 ,UInt ,GuiID                   ; (HMENU)GuiID
-                 ,UInt ,null                    ; hInstance
-                 ,UInt ,null, "UInt")           ; lpParam
+                 ,Uint ,WS_EX_CLIENTEDGE                ; Ex Style
+                 ,Str  ,"Scintilla"                     ; Class Name
+                 ,Str  ,""                              ; Window Name
+                 ,UInt ,hStyle                          ; Window Styles
+                 ,Int  ,x ? x : 5                       ; x
+                 ,Int  ,y ? y : 5                       ; y
+                 ,Int  ,w ? w : 590                     ; Width
+                 ,Int  ,h ? h : 390                     ; Height
+                 ,UInt ,hParent ? hParent : WinExist()  ; Parent HWND
+                 ,UInt ,GuiID                           ; (HMENU)GuiID
+                 ,UInt ,null                            ; hInstance
+                 ,UInt ,null, "UInt")                   ; lpParam
 
-                 ,SCI(hSci, True)               ; used to check if that handle exist.
-                 ,sendEditor(hSci)              ; initialize sendEditor function
-                 ,IsFunc(MsgHandler) ? SCI(hSci "MsgHandler", MsgHandler) : null
+                 ,__SCI(hSci, True)                     ; used to check if that handle exist.
+                 ,__sendEditor(hSci)                    ; initialize sendEditor function
+                 ,IsFunc(MsgHandler) ? __SCI(hSci "MsgHandler", MsgHandler) : null
 
     return hSci
 }
@@ -202,9 +208,12 @@ Add(hParent, x=5, y=5, w=590, h=390, Styles="", DllPath="", MsgHandler=""){
 /*
     Function : sendEditor
     Posts the messages used to modify the control's behaviour.
+    
+    *This is an internal function and it is not needed in normal situations. Please use the scintilla object to call all functions.
+    They call this function automatically*
 
     Parameters:
-    sendEditor(hwnd, msg, [wParam, lParam])
+    __sendEditor(hwnd, msg, [wParam, lParam])
 
     hwnd    -   The hwnd of the control that you want to operate on. Useful for when you have more than 1
                 Scintilla components in the same script. The wrapper will remember the last used hwnd,
@@ -220,12 +229,12 @@ Add(hParent, x=5, y=5, w=590, h=390, Styles="", DllPath="", MsgHandler=""){
 
     Examples:
     (Start Code)
-    sendEditor(hSci1, "SCI_SETMARGINWIDTHN",0,40)  ; Set the margin 0 to 40px on the first component.
-    sendEditor(0, "SCI_SETWRAPMODE",1,0)           ; Set wrap mode to True on the last used component.
-    sendEditor(hSci2, "SCI_SETMARGINWIDTHN",0,50)  ; Set the margin 0 to 50px on the second component.
+    __sendEditor(hSci1, "SCI_SETMARGINWIDTHN",0,40)  ; Set the margin 0 to 40px on the first component.
+    __sendEditor(0, "SCI_SETWRAPMODE",1,0)           ; Set wrap mode to True on the last used component.
+    __sendEditor(hSci2, "SCI_SETMARGINWIDTHN",0,50)  ; Set the margin 0 to 50px on the second component.
     (End)
 */
-sendEditor(hwnd, msg=0, wParam=0, lParam=0){
+__sendEditor(hwnd, msg=0, wParam=0, lParam=0){
     static
 
     hwnd := !hwnd ? oldhwnd : hwnd, oldhwnd := hwnd,msg := "SCI_" msg
@@ -326,7 +335,7 @@ sendEditor(hwnd, msg=0, wParam=0, lParam=0){
                   ,"Int"  ,%lParam%+0 ? %lParam% : lParam)
 }
 
-SCI(var, val=""){
+__SCI(var, val=""){
     static
 
     INVALID_POSITION:=-1,MARKER_MAX:=31,STYLE_DEFAULT:=32,STYLE_LINENUMBER:=33,STYLE_BRACELIGHT:=34,STYLE_BRACEBAD:=35,STYLE_CONTROLCHAR:=36
