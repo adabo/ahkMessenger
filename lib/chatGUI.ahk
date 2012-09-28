@@ -22,7 +22,8 @@ CreateGui(){
 
     Gui, Main: +LastFound
     sci := {} ; Scintilla Editor Array
-    mELog := WinExist(), sci[1] := new scintilla(mELog, 10,0,400,200, "", a_scriptdir "\lib")
+    hwnd := WinExist(), sci[1] := new scintilla(hwnd, 10,0,400,200, "", a_scriptdir "\lib")
+    mELog := sci[1].hwnd
 
     Menu, mMenuBar, Add, Edit
     Menu, mMenuBar, Add, View
