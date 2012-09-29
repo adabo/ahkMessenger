@@ -41,7 +41,7 @@ WS_OnRead(socket){
     msgType :=  SubStr(ServerMessage, 1 , 6)
     StringTrimLeft, ServerMessage, ServerMessage, 6
 
-    if (msgTYpe == "USLS||")
+    if (msgType == "USLS||")
     {
 
     	RegexMatch(ServerMessage, "^(.+?)\|\|", match)

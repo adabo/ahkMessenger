@@ -30,9 +30,9 @@ CreateGui(){
     Menu, mMenuBar, Add, Tools
     Gui, Main: +Resize MinSize545x324
     Gui, Main: Menu, mMenuBar
-    Gui, Main: Add, StatusBar
+    Gui, Main: Add, StatusBar, 0x100
     Gui, Main: Add, ListView , x415 y6   w120 h198 HwndmLUsl -Hdr -Multi, Icon|Users
-    Gui, Main: Add, Edit     , x10  y210 w400      HwndmESmg -WantReturn vGuiMessage -0x100
+    Gui, Main: Add, Edit     , x10  y210 w400      HwndmESmg -WantReturn +WantTab vGuiMessage gMessageInput -0x100
     Gui, Main: Add, Button   , x415 y210 w55  h23  HwndmBSmg Default gSendMessage, Send
     Gui, Main: Add, Button   , x480 y210 w55  h23  HwndmBCde gCodeWin, Code
     Gui, Main: Add, GroupBox , x5   y238 w530 h57  HwndmGCon, Connection Settings
@@ -46,21 +46,21 @@ CreateGui(){
         Gui, Main: Add, Button, x186 y260 w55       HwndmBCNk gChangeNick, Change
         Gui, Main: Add, Button, x420 y260 w55 h23   HwndmBCon gConnectToServer, Connect
         Gui, Main: Add, CheckBox, x485 y265 w43 h13 HwndmCTst gDisableIP vTest Checked1, Test
+        Attach(mBCNk, "y r")
+        Attach(mBCon, "y r")
+        Attach(mCTst, "y r1")
     }
 
-    Attach(mELog, "w h r")
-    Attach(mLUsl, "x h r")
-    Attach(mESmg, "y w r")
+    Attach(mELog, "w h r1")
+    Attach(mLUsl, "x h r1")
+    Attach(mESmg, "y w r1")
     Attach(mBSmg, "x y r")
     Attach(mBCde, "x y r")
-    Attach(mGCon, "y w r")
-    Attach(mTNkN, "y r")
-    Attach(mENkN, "y r")
-    Attach(mTSIP, "y r")
-    Attach(mESIP, "y r")
-    Attach(mBCNk, "y r")
-    Attach(mBCon, "y r")
-    Attach(mCTst, "y r")
+    Attach(mGCon, "y w r1")
+    Attach(mTNkN, "y r1")
+    Attach(mENkN, "y r1")
+    Attach(mTSIP, "y r1")
+    Attach(mESIP, "y r1")
 
     Gui, Code: Default
     Gui, Code: +LastFound
@@ -84,9 +84,32 @@ CreateGui(){
     if (type = "client")
         Pause, On
     return
+
+    MessageInput:
+        Gui, Main: Submit, NoHide
+        if (RegexMatch(GuiMessage, "(\t)$"))
+        {
+            if (pos := RegexMatch(GuiMessage, "ix)\s?(\w+)\s$", m))
+            {
+                loop % LV_GetCount()
+                {
+                    Gui, Main: Default
+                    LV_GetText(rowText, A_Index, 2)
+                    sub := SubStr(rowText, 1, StrLen(m1))
+                    StringLower, sub, sub
+                    if (m1 == sub)
+                    {
+                        StringTrimRight, GuiMessage, GuiMessage, % StrLen(m1) + 1
+                        GuiControl, Text, %mESmg%, %GuiMessage%%rowText%
+                        SendInput, {End}
+                    }
+                }
+            }
+        }
+    return
     
     ConnectToServer:
-        Gui, Main: Submit, NoHide     ;Necessary to submit Nickname (not scintilla)
+        Gui, Main: Submit, NoHide     ;Necessary to submit Nickname (not a scintilla control)
         if (!clientConnected && nickCheck(EdNick))
         {
             setup_Scintilla(sci, EdNick)

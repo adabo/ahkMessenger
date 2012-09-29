@@ -12,6 +12,7 @@
 #include <ws>
 #include <SCI>
 #include <chatGUI>
+#include <attach>
 #singleinstance force
 
 type := "server"
