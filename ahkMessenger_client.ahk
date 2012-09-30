@@ -49,7 +49,7 @@ WS_OnRead(socket){
     	
     	Gui, Main: Default
     	lV_Delete()
-    	Loop, Parse, ServerMessage, %A_Space%
+    	Loop, Parse, ServerMessage, %A_Space%, %A_Space%
 			LV_Add("" ,"", A_LoopField) ;The username
         StringReplace, nickList, ServerMessage, %EdNick%%a_space%,,A
         sci[1].SetKeywords(1,nickList)

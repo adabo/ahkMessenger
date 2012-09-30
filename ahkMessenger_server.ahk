@@ -78,7 +78,7 @@ WS_OnRead(socket){
         userNick[ClientMessage] := socket
         nickFromSocket[socket] := ClientMessage
         for key, value in nickFromSocket
-            nickList .= value . " "
+            nickList .= value . (key == nickFromSocket.MaxIndex() ? "" : " ")
         for key, value in NewConnection
             if (key != 000)
                 WS_Send(key, "USLS||" . nickFromSocket[socket] . "||" . nickList)
@@ -89,7 +89,7 @@ WS_OnRead(socket){
         ;========Update Server listview main====
         Gui, Main: Default
         lV_Delete()
-        Loop, Parse, nickList, %A_Space%
+        Loop, Parse, nickList, %A_Space%, %A_Space%
             if (A_LoopField != "Server")
                 LV_Add("" ,"", A_LoopField) ;The userNick
         sci[1].AddText(strLen(str:="Notice: " ClientMessage . " has connected.`n"), str), sci[1].ScrollCaret()

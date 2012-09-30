@@ -64,7 +64,9 @@ CreateGui(){
 
     Gui, Code: Default
     Gui, Code: +LastFound
-    hwnd := WinExist(), sci[2] := new scintilla(hwnd, 0,0,400,400,"", a_scriptdir "\lib") 
+    hwnd := WinExist(), sci[2] := new scintilla(hwnd, 0,0,400,400,"", a_scriptdir "\lib")
+
+    sci[2].AddText("1","zzz")
 
     Gui, Code: Font, s10, Lucida Console
     Gui, Code: Add, ListView, x420 y8 w140 h400 -Hdr -Multi gListViewNotifications, Icon|Users
@@ -87,25 +89,11 @@ CreateGui(){
 
     MessageInput:
         Gui, Main: Submit, NoHide
-        if (RegexMatch(GuiMessage, "(\t)$"))
-        {
-            if (pos := RegexMatch(GuiMessage, "ix)\s?(\w+)\s$", m))
-            {
-                loop % LV_GetCount()
-                {
-                    Gui, Main: Default
-                    LV_GetText(rowText, A_Index, 2)
-                    sub := SubStr(rowText, 1, StrLen(m1))
-                    StringLower, sub, sub
-                    if (m1 == sub)
-                    {
-                        StringTrimRight, GuiMessage, GuiMessage, % StrLen(m1) + 1
-                        GuiControl, Text, %mESmg%, %GuiMessage%%rowText%
-                        SendInput, {End}
-                    }
-                }
-            }
-        }
+        SendMessage, 0x00B0,,,, AHK_ID%mESmg%            ; Get Caret position
+        caretPos := MakeShort(ErrorLevel)                ; Assign to variable
+        StringMid, leftChars, GuiMessage, 0, %caretPos%  ; Grab all text BEFORE (to the left) of the caret
+        if (RegexMatch(leftChars, "ix)\s?(\w+)\t$", m))  ; Test if a Tab was pressed
+            findMatch(m1)
     return
     
     ConnectToServer:
@@ -167,7 +155,7 @@ CreateGui(){
             LV_ModifyCol(1)
             if(!firstVisit)
             {
-                LV_Add("Icon" . 3, "", NickName)
+                LV_Add("Icon" . 3, "", EdNick)
                 LV_ModifyCol(1), firstVisit++
             }
 
@@ -187,7 +175,7 @@ CreateGui(){
                 WS_Send(client, "RQST||" . nick)
             else if (type = "server")
             {
-                skt := userName[nick]            
+                skt := userNick[nick]            
                 sci[2].ClearAll(), sci[2].AddText(strLen(str:=userCodes[skt]), str), sci[2].ScrollCaret()
                 LV_Modify(A_EventInfo, "Icon" . 0)
             }
@@ -408,4 +396,32 @@ nickCheck(n){
             msgbox, A nickname cannot be empty and must begin with a letter.`nPlease try again.
 
         return verify
+}
+
+findMatch(searchFor){
+    global mESmg, caretPos
+
+    ;Gui, Main: Default
+    loop % LV_GetCount()
+    {
+        LV_GetText(rowText, A_Index, 2)
+        if (searchFor == rowText)
+            continue
+        firstLtrMatch := SubStr(searchFor, 1, 1)     ; Set the first letter of match1
+        firstLtrRow   := SubStr(rowText  , 1, 1)     ; from Edit control and Row text
+        StringLower, firstLtrMatch, firstLtrMatch    ; to lower case. 
+        StringLower, firstLtrRow  , firstLtrRow      ; 
+        if (firstLtrMatch == firstLtrRow)            ;  Then compare them.
+        {
+            startOfWord := caretPos - (StrLen(searchFor) + 1)
+            SendMessage, 0x00B1, startOfWord, caretPos,, AHK_ID%mESmg%  ; EM_SETSEL
+            SendMessage, 0x00C2,            , &rowText,, AHK_ID%mESmg%  ; EM_REPLACESEL
+            break                                                      ; > Replaces highlighted
+        }                                                              ; text with LV Item
+    }
+
+}
+
+MakeShort(Long) {
+ return Long & 0xffff
 }
