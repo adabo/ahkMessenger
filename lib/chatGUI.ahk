@@ -130,14 +130,14 @@ CreateGui(){
             return
         if (type = "client")
         {
-            WS_Send(client, "MESG||" . EdNick . ": " . GuiMessage)
+            WS_Send(client, "MESG||" . EdNick . "||" . GuiMessage)
             GuiControl, Main:, GuiMessage
         }
         else if (type = "server")
         {
             for key, value in NewConnection
                 if (NewConnection[key] != 000)
-                    WS_Send(NewConnection[key], "MESG||" . EdNick . ": " . GuiMessage)
+                    WS_Send(NewConnection[key], "MESG||" . EdNick . "||" . GuiMessage)
             sci[1].AddText(strLen(str:=EdNick ": " GuiMessage "`n"), str), sci[1].ScrollCaret()
             GuiControl, Main:, GuiMessage
         }

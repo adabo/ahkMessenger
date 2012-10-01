@@ -1,5 +1,4 @@
-/*
-	Legend:
+/* Legend:
 		MESG|| = Message
 		NWCD|| = New code
 		USRN|| = User name
@@ -97,12 +96,19 @@ WS_OnRead(socket){
     }
     else if (msgType == "MESG||")
     {
-        IfWinnotActive, ahkMessenger Server
-            soundplay, *48
+
         for key, value in NewConnection
             if (NewConnection[key] != 000)
                 WS_Send(NewConnection[key], "MESG||" . ClientMessage)
-        sci[1].AddText(strLen(str:=ClientMessage "`n"), str), sci[1].ScrollCaret()
+
+        ;=============== For Server GUI =================
+        msgbox %ServerMessage%
+        RegexMatch(ServerMessage, "^(.+?)\|\|", match)
+        StringTrimLeft, ServerMessage, ServerMessage, strLen(match1) + 2 
+        sci[1].AddText(strLen(str:= match1 . ": " . ClientMessage "`n"), str), sci[1].ScrollCaret()
+        IfWinnotActive, ahkMessenger Server
+            soundplay, *48
+        ;================================================
     }
     else if (msgType == "RQST||")
     {
@@ -135,7 +141,7 @@ WS_OnRead(socket){
             LV_Add("Icon" . 1,"", nickFromSocket[socket])
         ;===================================================================;
     }
-    else if(msgType == "NKCH||")
+    else if (msgType == "NKCH||")
     {
 
         oldNick := nickFromSocket[socket]

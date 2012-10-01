@@ -75,9 +75,11 @@ WS_OnRead(socket){
 	}
 	else if (msgType == "MESG||")
 	{
+		RegexMatch(ServerMessage, "^(.+?)\|\|", match)
+		StringTrimLeft, ServerMessage, ServerMessage, strLen(match1) + 2 
         IfWinnotActive, ahkMessenger Client
             soundplay, *48
-    	sci[1].AddText(strLen(str:=ServerMessage "`n"), str), sci[1].ScrollCaret()
+    	sci[1].AddText(strLen(str:= match1 . ": " . ServerMessage "`n"), str), sci[1].ScrollCaret()
 	}
 	else if (msgType == "NWCD||")
 	{
@@ -125,7 +127,7 @@ WS_OnRead(socket){
 					lV_Delete(A_Index)
 		}
 	}
-    else if(msgType == "NKCH||")
+    else if (msgType == "NKCH||")
     {
     	RegexMatch(ServerMessage, "^(.+?)\|\|", gOldNick) ; Old nick
     	StringTrimLeft, ServerMessage, ServerMessage, strLen(gOldNick1) + 2
