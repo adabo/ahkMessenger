@@ -128,13 +128,21 @@ CreateGui(){
         Gui, Main: Submit, NoHide
         if (!GuiMessage)
             return
+        RegexMatch(GuiMessage, "^/(.+?)", m)
         if (type = "client")
         {
-            WS_Send(client, "MESG||" . EdNick . "||" . GuiMessage)
+            if (m1)
+                WS_Send(client, "COMD||" . GuiMessage)
+            else
+                WS_Send(client, "MESG||" . EdNick . "||" . GuiMessage)
             GuiControl, Main:, GuiMessage
         }
         else if (type = "server")
         {
+            if (m1)
+            {
+                return
+            }
             for key, value in NewConnection
                 if (NewConnection[key] != 000)
                     WS_Send(NewConnection[key], "MESG||" . EdNick . "||" . GuiMessage)

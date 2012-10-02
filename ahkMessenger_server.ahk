@@ -72,7 +72,7 @@ WS_OnRead(socket){
     msgType :=  SubStr(ClientMessage, 1 , 6)
     StringTrimLeft, ClientMessage, ClientMessage, 6
 
-    if (msgType == "USRN||")
+    if      (msgType == "USRN||")
     {
         userNick[ClientMessage] := socket
         nickFromSocket[socket] := ClientMessage
@@ -96,15 +96,13 @@ WS_OnRead(socket){
     }
     else if (msgType == "MESG||")
     {
-
+        RegexMatch(ClientMessage, "^(.+?)\|\|", match)
+        StringTrimLeft, ClientMessage, ClientMessage, strLen(match1) + 2 
         for key, value in NewConnection
             if (NewConnection[key] != 000)
-                WS_Send(NewConnection[key], "MESG||" . ClientMessage)
+                WS_Send(NewConnection[key], "MESG||" . match1 . "||" . ClientMessage)
 
         ;=============== For Server GUI =================
-        msgbox %ServerMessage%
-        RegexMatch(ServerMessage, "^(.+?)\|\|", match)
-        StringTrimLeft, ServerMessage, ServerMessage, strLen(match1) + 2 
         sci[1].AddText(strLen(str:= match1 . ": " . ClientMessage "`n"), str), sci[1].ScrollCaret()
         IfWinnotActive, ahkMessenger Server
             soundplay, *48
@@ -163,6 +161,19 @@ WS_OnRead(socket){
                 LV_Add("" ,"", A_LoopField) ;The userNick
         sci[1].AddText(strLen(str:="Notice: " oldNick . " has changed their nick to: " . ClientMessage . "`n"), str), sci[1].ScrollCaret()
         ;=======================================
+    }
+    else if (msgType == "COMD||")
+    {
+        RegexMatch(ClientMessage, "^/(.+?) ", cmd)
+        if      (cmd1 == "")
+            WS_Send(NewConnection[socket], "MESG||Notice from Server: You want to to send some command?")
+        else if (cmd1 == "/JOIN")
+            WS_Send(NewConnection[socket], "MESG||Notice from Server: You want to join some channel?")
+        else if (cmd1 == "/LEAVE")
+            WS_Send(NewConnection[socket], "MESG||Notice from Server: You want to leave some channel?")
+        else if (cmd1 == "/MOTD")
+            WS_Send(NewConnection[socket], "MESG||Notice from Server: You want the Message Of The Day?")
+        ;else if (cmd1 == "/EXIT")
     }
 }
 

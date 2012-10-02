@@ -41,7 +41,7 @@ WS_OnRead(socket){
     msgType :=  SubStr(ServerMessage, 1 , 6)
     StringTrimLeft, ServerMessage, ServerMessage, 6
 
-    if (msgType == "USLS||")
+    if      (msgType == "USLS||")
     {
 
     	RegexMatch(ServerMessage, "^(.+?)\|\|", match)
@@ -76,10 +76,16 @@ WS_OnRead(socket){
 	else if (msgType == "MESG||")
 	{
 		RegexMatch(ServerMessage, "^(.+?)\|\|", match)
-		StringTrimLeft, ServerMessage, ServerMessage, strLen(match1) + 2 
+		msgbox %match1%
+		if (match1 == "Server")
+		{
+	    	sci[1].AddText(strLen(str:= ServerMessage "`n"), str), sci[1].ScrollCaret()
+			return	
+		}
+		StringTrimLeft, ServerMessage, ServerMessage, strLen(match1) + 2 ;Get requested name from message
+  		sci[1].AddText(strLen(str:= match1 . ": " . ServerMessage "`n"), str), sci[1].ScrollCaret()
         IfWinnotActive, ahkMessenger Client
             soundplay, *48
-    	sci[1].AddText(strLen(str:= match1 . ": " . ServerMessage "`n"), str), sci[1].ScrollCaret()
 	}
 	else if (msgType == "NWCD||")
 	{
