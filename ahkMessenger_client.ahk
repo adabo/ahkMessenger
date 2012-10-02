@@ -42,7 +42,7 @@ WS_OnRead(socket){
     msgType :=  SubStr(ServerMessage, 1 , 6)
     StringTrimLeft, ServerMessage, ServerMessage, 6
 
-    if (msgType == "USLS||")
+    if      (msgType == "USLS||")
     {
 
     	RegexMatch(ServerMessage, "^(.+?)\|\|", match)
@@ -50,7 +50,7 @@ WS_OnRead(socket){
 
     	Gui, Main: Default
     	lV_Delete()
-    	Loop, Parse, ServerMessage, %A_Space%
+    	Loop, Parse, ServerMessage, %A_Space%, %A_Space%
 			LV_Add("" ,"", A_LoopField) ;The username
         StringReplace, nickList, ServerMessage, %EdNick%%a_space%,,A
         sci[1].SetKeywords(1,nickList)
@@ -79,6 +79,15 @@ WS_OnRead(socket){
 	}
 	else if (msgType == "MESG||")
 	{
+		RegexMatch(ServerMessage, "^(.+?)\|\|", match)
+		msgbox %match1%
+		if (match1 == "Server")
+		{
+	    	sci[1].AddText(strLen(str:= ServerMessage "`n"), str), sci[1].ScrollCaret()
+			return	
+		}
+		StringTrimLeft, ServerMessage, ServerMessage, strLen(match1) + 2 ;Get requested name from message
+  		sci[1].AddText(strLen(str:= match1 . ": " . ServerMessage "`n"), str), sci[1].ScrollCaret()
         IfWinnotActive, ahkMessenger Client
             soundplay, *48
     	sci[1].setReadOnly(false)
@@ -133,7 +142,7 @@ WS_OnRead(socket){
 					lV_Delete(A_Index)
 		}
 	}
-    else if(msgType == "NKCH||")
+    else if (msgType == "NKCH||")
     {
     	RegexMatch(ServerMessage, "^(.+?)\|\|", gOldNick) ; Old nick
     	StringTrimLeft, ServerMessage, ServerMessage, strLen(gOldNick1) + 2

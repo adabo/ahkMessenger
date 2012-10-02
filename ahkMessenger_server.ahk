@@ -1,5 +1,4 @@
-/*
-	Legend:
+/* Legend:
 		MESG|| = Message
 		NWCD|| = New code
 		USRN|| = User name
@@ -74,12 +73,12 @@ WS_OnRead(socket){
     msgType :=  SubStr(ClientMessage, 1 , 6)
     StringTrimLeft, ClientMessage, ClientMessage, 6
 
-    if (msgType == "USRN||")
+    if      (msgType == "USRN||")
     {
         userNick[ClientMessage] := socket
         nickFromSocket[socket] := ClientMessage
         for key, value in nickFromSocket
-            nickList .= value . " "
+            nickList .= value . (key == nickFromSocket.MaxIndex() ? "" : " ")
         for key, value in NewConnection
             if (key != 000)
                 WS_Send(key, "USLS||" . nickFromSocket[socket] . "||" . nickList)
@@ -90,7 +89,7 @@ WS_OnRead(socket){
         ;========Update Server listview main====
         Gui, Main: Default
         lV_Delete()
-        Loop, Parse, nickList, %A_Space%
+        Loop, Parse, nickList, %A_Space%, %A_Space%
             if (A_LoopField != "Server")
                 LV_Add("" ,"", A_LoopField) ;The userNick
         sci[1].setReadOnly(false)
@@ -100,14 +99,18 @@ WS_OnRead(socket){
     }
     else if (msgType == "MESG||")
     {
-        IfWinnotActive, ahkMessenger Server
-            soundplay, *48
+        RegexMatch(ClientMessage, "^(.+?)\|\|", match)
+        StringTrimLeft, ClientMessage, ClientMessage, strLen(match1) + 2 
         for key, value in NewConnection
             if (NewConnection[key] != 000)
-                WS_Send(NewConnection[key], "MESG||" . ClientMessage)
+                WS_Send(NewConnection[key], "MESG||" . match1 . "||" . ClientMessage)
+        ;=============== For Server GUI =================
         sci[1].setReadOnly(false)
-        sci[1].AddText(strLen(str:=ClientMessage "`n"), str), sci[1].ScrollCaret()
+        sci[1].AddText(strLen(str:= match1 . ": " . ClientMessage "`n"), str), sci[1].ScrollCaret()
         sci[1].setReadOnly(true)
+        IfWinnotActive, ahkMessenger Server
+            soundplay, *48
+        ;================================================
     }
     else if (msgType == "RQST||")
     {
@@ -142,7 +145,7 @@ WS_OnRead(socket){
             LV_Add("Icon" . 1,"", nickFromSocket[socket])
         ;===================================================================;
     }
-    else if(msgType == "NKCH||")
+    else if (msgType == "NKCH||")
     {
 
         oldNick := nickFromSocket[socket]
@@ -166,6 +169,19 @@ WS_OnRead(socket){
         sci[1].AddText(strLen(str:="Notice: " oldNick . " has changed their nick to: " . ClientMessage . "`n"), str), sci[1].ScrollCaret()
         sci[1].setReadOnly(true)
         ;=======================================
+    }
+    else if (msgType == "COMD||")
+    {
+        RegexMatch(ClientMessage, "^/(.+?) ", cmd)
+        if      (cmd1 == "")
+            WS_Send(NewConnection[socket], "MESG||Notice from Server: You want to to send some command?")
+        else if (cmd1 == "/JOIN")
+            WS_Send(NewConnection[socket], "MESG||Notice from Server: You want to join some channel?")
+        else if (cmd1 == "/LEAVE")
+            WS_Send(NewConnection[socket], "MESG||Notice from Server: You want to leave some channel?")
+        else if (cmd1 == "/MOTD")
+            WS_Send(NewConnection[socket], "MESG||Notice from Server: You want the Message Of The Day?")
+        ;else if (cmd1 == "/EXIT")
     }
 }
 
