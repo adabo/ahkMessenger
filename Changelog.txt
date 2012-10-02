@@ -13,59 +13,42 @@ Legend:
     $ Disable
 ==================
 
-commit 0039ee53306e9e21e9bdf77f061f6ed791c26a85
+commit 4212f12dd904396087c8c4e3359ad7986b8b004e
 Author: RaptorX <graptorx@gmail.com>
-Date:   Wed Sep 26 22:31:33 2012 +0200
+Date:   Tue Oct 2 21:03:44 2012 +0200
 
-    ahkMessenger v0.19
+    ahkMessenger v0.23
     
     Changes:
     
-    ! Fix Code GUI bug with sending text
-    ! Fix Code GUI bug with 0x character
+    * Changed Updated Scintilla Wrapper and binary
 
-commit a411caa1f175c676ab10475768ee488be0258b5a
+commit 30a599e251103afa3185760e7c4ae8d9386d9c42
 Author: RaptorX <graptorx@gmail.com>
-Date:   Wed Sep 26 01:00:53 2012 +0200
+Date:   Tue Oct 2 21:02:35 2012 +0200
 
-    ahkMessenger v0.18
-    
-    Changes:
-    
-    + Add new Gui function
-    
-    * Change Gui layout
-    
-    - Remove client/server guis
+    resolved conflict
 
-commit 789b8231c0a32eae213eb0a391660e5391d32a8a
+commit 4815334ea8ecf32dd8bd128f5ff971b8970296f7
+Merge: b83df2d 5c0f9e9
 Author: RaptorX <graptorx@gmail.com>
-Date:   Tue Sep 25 20:34:34 2012 +0200
+Date:   Tue Oct 2 20:54:10 2012 +0200
 
-    ahkMessenger v0.17
-    
-    Changes:
-    
-    + Add notification when not active
-    
-    ! Fix coloring bug
+    Merge branches 'master' and 'devel'
 
-commit 8f220ed88e032b4ca716d21efd1a0da46e120c3e
+commit b83df2dd46597ab5a02b04af3eaee105bbdfef6c
 Author: Abel Gutierrez <abel4@msn.com>
-Date:   Tue Sep 25 02:32:07 2012 -0500
+Date:   Sat Sep 29 15:53:36 2012 -0500
 
-    ahkMessenger v0.16
+    ahkMessenger v0.22
     
     Changes:
     
-    No idea. I'm tired and needed to commit.
+    + Added Autocomplete for nicknames
+    ! Fixed some typos in code
 
-commit 7504a95d3dddc56a40b89649f603a5923dc12547
-Author: Abel Gutierrez <abel4@msn.com>
-Date:   Tue Sep 25 00:40:47 2012 -0500
+commit 5c0f9e9d8d63516415c346b3805f5eec8c097ee6
+Author: RaptorX <graptorx@gmail.com>
+Date:   Fri Sep 28 21:17:40 2012 +0200
 
-    ahkMessenger v0.15
-    
-    Changes:
-    
-    + Add new user connects
+    * Update scintilla wrapper
