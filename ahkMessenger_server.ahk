@@ -28,7 +28,7 @@ OnExit, ExitRoutine
 
 ; GUI
 	CreateGui()
-    
+
     if (EdNick != "Server")
     {
         msgbox, The server nick MUST be: "Server"!
@@ -36,7 +36,7 @@ OnExit, ExitRoutine
     }
     else if (!EdServIP)
         return
-    
+
     ; Initialize
     WS_LOGTOCONSOLE := 1
     WS_Startup()
@@ -69,6 +69,7 @@ WS_OnAccept(socket){
 WS_OnRead(socket){
     global Log, LogID, NewConnection, sci, userCodes, userNick, nickFromSocket, EdNick
 
+    sci[1].GotoPos(sci[1].GetLength())
     WS_Recv(socket, ClientMessage)
     msgType :=  SubStr(ClientMessage, 1 , 6)
     StringTrimLeft, ClientMessage, ClientMessage, 6
@@ -82,17 +83,19 @@ WS_OnRead(socket){
         for key, value in NewConnection
             if (key != 000)
                 WS_Send(key, "USLS||" . nickFromSocket[socket] . "||" . nickList)
-        
+
         StringReplace, nickList, nickList, %EdNick%%a_space%,,A
         sci[1].SetKeywords(1,nl:=nickList)
-        
+
         ;========Update Server listview main====
         Gui, Main: Default
         lV_Delete()
         Loop, Parse, nickList, %A_Space%
             if (A_LoopField != "Server")
                 LV_Add("" ,"", A_LoopField) ;The userNick
+        sci[1].setReadOnly(false)
         sci[1].AddText(strLen(str:="Notice: " ClientMessage . " has connected.`n"), str), sci[1].ScrollCaret()
+        sci[1].setReadOnly(true)
         ;=======================================
     }
     else if (msgType == "MESG||")
@@ -102,7 +105,9 @@ WS_OnRead(socket){
         for key, value in NewConnection
             if (NewConnection[key] != 000)
                 WS_Send(NewConnection[key], "MESG||" . ClientMessage)
+        sci[1].setReadOnly(false)
         sci[1].AddText(strLen(str:=ClientMessage "`n"), str), sci[1].ScrollCaret()
+        sci[1].setReadOnly(true)
     }
     else if (msgType == "RQST||")
     {
@@ -118,7 +123,9 @@ WS_OnRead(socket){
 
         ;=========== Update Server code window ListView ===================;
         Gui, Code: Default
+        sci[1].setReadOnly(false)
         sci[1].AddText(strlen(str := "Notice: New code from """ . nickFromSocket[socket] . """`n"), str), sci[1].ScrollCaret()
+        sci[1].setReadOnly(true)
         loop % LV_GetCount()
         {
             LV_GetText(rowText, A_Index, 2)
@@ -145,17 +152,19 @@ WS_OnRead(socket){
         for key, value in NewConnection
             if (key != 000)
                 WS_Send(key, "NKCH||" . oldNick . "||" . ClientMessage . "||" . nickList)
-        
+
         StringReplace, nickList, nickList, %EdNick%%a_space%,,A
         sci[1].SetKeywords(1,nl:=nickList)
-        
+
         ;========Update Server listview main====
         Gui, Main: Default
         lV_Delete()
         Loop, Parse, nickList, %A_Space%
             if (A_LoopField != "Server")
                 LV_Add("" ,"", A_LoopField) ;The userNick
+        sci[1].setReadOnly(false)
         sci[1].AddText(strLen(str:="Notice: " oldNick . " has changed their nick to: " . ClientMessage . "`n"), str), sci[1].ScrollCaret()
+        sci[1].setReadOnly(true)
         ;=======================================
     }
 }

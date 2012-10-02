@@ -61,7 +61,7 @@ CreateGui(){
     Attach(mENkN, "y r")
     Attach(mTSIP, "y r")
     Attach(mESIP, "y r")
-    
+
     if (type = "client")
     {
         Attach(mBCNk, "y r2")
@@ -114,7 +114,7 @@ CreateGui(){
             }
         }
     return
-    
+
     ConnectToServer:
         Gui, Main: Submit, NoHide     ;Necessary to submit Nickname (not a scintilla control)
         if (!clientConnected && nickCheck(EdNick))
@@ -147,6 +147,9 @@ CreateGui(){
         Gui, Main: Submit, NoHide
         if (!GuiMessage)
             return
+
+        sci[1].GotoPos(sci[1].GetLength())
+
         if (type = "client")
         {
             WS_Send(client, "MESG||" . EdNick . ": " . GuiMessage)
@@ -157,14 +160,16 @@ CreateGui(){
             for key, value in NewConnection
                 if (NewConnection[key] != 000)
                     WS_Send(NewConnection[key], "MESG||" . EdNick . ": " . GuiMessage)
-            sci[1].AddText(strLen(str:=EdNick ": " GuiMessage "`n"), str), sci[1].ScrollCaret()
+            sci[1].SetReadOnly(false)
+            sci[1].AddText(strLen(str:=EdNick ": " GuiMessage "`n"), str), sci[1].GotoPos(sci[1].GetLength())
+            sci[1].SetReadOnly(true)
             GuiControl, Main:, GuiMessage
         }
     return
 
     SendCode:
         sci[2].GetText(sci[2].GetLength()+1, GuiCode)
-        if (type = "client")
+        if (type = "client")   
             WS_Send(client, "NWCD||" . GuiCode)
         else if (type "server")
         {
@@ -195,7 +200,7 @@ CreateGui(){
             else if (type = "server")
             {
                 skt := userNick[nick]
-                sci[2].ClearAll(), sci[2].AddText(strLen(str:=userCodes[skt]), str), sci[2].ScrollCaret()
+                sci[2].ClearAll(), sci[2].AddText(strLen(str:=userCodes[skt]), str), sci[2].GotoPos(sci[2].GetLength())
                 LV_Modify(A_EventInfo, "Icon" . 0)
             }
         }
@@ -350,17 +355,18 @@ setup_Scintilla(sci, localNick=""){
         monitorcount monitorprimary monitorname monitorworkarea pid base useunsetlocal useunsetglobal
         localsameasglobal
     )
-
+    infoMessages = Notice
+    
     ;{ sci[1] Configuration
-    sci[1].SetWrapMode("SC_WRAP_WORD"), sci[1].SetMarginWidthN(1, 0), sci[1].SetLexer(6)
-    sci[1].StyleSetBold("STYLE_DEFAULT", true), sci[1].StyleClearAll()
+    sci[1].SetWrapMode("SC_WRAP_WORD"), sci[1].SetMarginWidthN(1, 0), sci[1].SetReadOnly(true), sci[1].SetLexer(6)
+    sci[1].SetCaretWidth(0), sci[1].StyleSetBold("STYLE_DEFAULT", true), sci[1].StyleClearAll()
 
-    sci[1].SetKeywords(0,localNick)
+    sci[1].SetKeywords(0,localNick), sci[1].SetKeywords(2,infoMessages)
 
     sci[1].StyleSetFore(0,0x000000), sci[1].StyleSetBold(0, false)      ; SCE_MSG_DEFAULT
     sci[1].StyleSetFore(1,0xFF0000)                                     ; SCE_MSG_LOCALNICK
     sci[1].StyleSetFore(2,0x0000FF)                                     ; SCE_MSG_OTHERNICK
-    sci[1].StyleSetFore(3,0x0E0E0E), sci[1].StyleSetBold(3, false)      ; SCE_MSG_INFOMESSAGE
+    sci[1].StyleSetFore(3,0x00FF00), sci[1].StyleSetBold(3, false)      ; SCE_MSG_INFOMESSAGE
     ;}
 
     ;{ sci[2] Configuration

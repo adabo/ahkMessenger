@@ -28,14 +28,15 @@ OnExit, ExitRoutine
 	client := WS_Socket("TCP", "IPv4")
 	WS_Connect(client, test ? "127.0.0.1" : "99.23.4.199", "12345")
 	WS_HandleEvents(client, "READ")
-    
+
 	WS_Send(client, "USRN||" . EdNick)
 return
 
 WS_OnRead(socket){
 	Global sci, CodeID, EdNick, nickList
 	static firstVist
-	
+
+    sci[1].GotoPos(sci[1].GetLength())
 	WS_Recv(socket, ServerMessage)
 
     msgType :=  SubStr(ServerMessage, 1 , 6)
@@ -46,14 +47,16 @@ WS_OnRead(socket){
 
     	RegexMatch(ServerMessage, "^(.+?)\|\|", match)
         StringTrimLeft, ServerMessage, ServerMessage, strLen(match1) + 2
-    	
+
     	Gui, Main: Default
     	lV_Delete()
     	Loop, Parse, ServerMessage, %A_Space%
 			LV_Add("" ,"", A_LoopField) ;The username
         StringReplace, nickList, ServerMessage, %EdNick%%a_space%,,A
         sci[1].SetKeywords(1,nickList)
-        sci[1].AddText(strLen(str := "Notice: " match1 . " has connected.`n"), str), sci.ScrollCaret()
+        sci[1].setReadOnly(false)
+        sci[1].AddText(strLen(str := "Notice: " match1 . " has connected.`n"), str), sci[1].GotoPos(sci[1].GetLength())
+        sci[1].setReadOnly(true)
     }
 	else if (msgType == "CODE||")
 	{
@@ -70,14 +73,17 @@ WS_OnRead(socket){
     	}
 		LV_ModifyCol(1)
 		;===================================================================;
-        msgbox % ServerMessage
-	    sci[2].ClearAll(), sci[2].AddText(strLen(str:=ServerMessage), str), sci[2].ScrollCaret()
+        sci[2].setReadOnly(false)
+	    sci[2].ClearAll(), sci[2].AddText(strLen(str:=ServerMessage), str), sci[2].GotoPos(sci[2].GetLength())
+        sci[2].setReadOnly(true)
 	}
 	else if (msgType == "MESG||")
 	{
         IfWinnotActive, ahkMessenger Client
             soundplay, *48
-    	sci[1].AddText(strLen(str:=ServerMessage "`n"), str), sci[1].ScrollCaret()
+    	sci[1].setReadOnly(false)
+        sci[1].AddText(strLen(str:=ServerMessage "`n"), str), sci[1].GotoPos(sci[1].GetLength())
+        sci[1].setReadOnly(true)
 	}
 	else if (msgType == "NWCD||")
 	{
@@ -113,7 +119,9 @@ WS_OnRead(socket){
 		;===================================================================;
 
 		LV_ModifyCol(1)
+        sci[1].setReadOnly(false)
 		sci[1].AddText(strLen(str:= "Notice: New code from: """ . ServerMessage . """`n"), str)
+        sci[1].setReadOnly(true)
 	}
 	else if (msgType == "DISC||")
 	{
@@ -132,17 +140,19 @@ WS_OnRead(socket){
 
     	RegexMatch(ServerMessage, "^(.+?)\|\|", gNewNick) ; Old nick
     	StringTrimLeft, ServerMessage, ServerMessage, strLen(gNewNick1) + 2
-    	
+
        	Gui, Main: Default
     	lV_Delete()
     	Loop, Parse, ServerMessage, %A_Space%
 			LV_Add("" ,"", A_LoopField) ;The username
         StringReplace, nickList, ServerMessage, %EdNick%%a_space%,,A
         sci[1].SetKeywords(1,nickList)
-        sci[1].AddText(strLen(str:="Notice: " gOldNick1 . " has changed their nick to: " . gNewNick1 . "`n"), str), sci[1].ScrollCaret()
+        sci[1].setReadOnly(false)
+        sci[1].AddText(strLen(str:="Notice: " gOldNick1 . " has changed their nick to: " . gNewNick1 . "`n"), str), sci[1].GotoPos(sci[1].GetLength())
+        sci[1].setReadOnly(true)
     }
-
 }
+
 
 GuiSize:
     tooltip % a_guiwidth " " a_guiheight
