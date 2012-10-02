@@ -22,7 +22,7 @@ CreateGui(){
 
     Gui, Main: +LastFound
     sci := {} ; Scintilla Editor Array
-    hwnd := WinExist(), sci[1] := new scintilla(hwnd, 10,0,400,200, "", a_scriptdir "\lib")
+    hwnd := WinExist(), sci[1] := new scintilla(hwnd, 10,0,400,200, a_scriptdir "\lib")
     mELog := sci[1].hwnd
 
     Menu, mMenuBar, Add, Edit
@@ -71,7 +71,7 @@ CreateGui(){
 
     Gui, Code: Default
     Gui, Code: +LastFound
-    hwnd := WinExist(), sci[2] := new scintilla(hwnd, 0,0,400,400,"", a_scriptdir "\lib")
+    hwnd := WinExist(), sci[2] := new scintilla(hwnd, 0,0,400,400, a_scriptdir "\lib")
 
     Gui, Code: Font, s10, Lucida Console
     Gui, Code: Add, ListView, x420 y8 w140 h400 -Hdr -Multi gListViewNotifications, Icon|Users
@@ -163,7 +163,7 @@ CreateGui(){
     return
 
     SendCode:
-        sci[2].GetText(len:=sci[2].GetLength()+1 < 8 ? 8 : len, GuiCode) ; Temporal fix for GetText, because it must have 8+ bytes for it to work correctly
+        sci[2].GetText(sci[2].GetLength()+1, GuiCode)
         if (type = "client")
             WS_Send(client, "NWCD||" . GuiCode)
         else if (type "server")
@@ -194,7 +194,7 @@ CreateGui(){
                 WS_Send(client, "RQST||" . nick)
             else if (type = "server")
             {
-                skt := userName[nick]
+                skt := userNick[nick]
                 sci[2].ClearAll(), sci[2].AddText(strLen(str:=userCodes[skt]), str), sci[2].ScrollCaret()
                 LV_Modify(A_EventInfo, "Icon" . 0)
             }

@@ -3,7 +3,7 @@ class scintilla {
     static hwnd := ""
 
     __new(params*){
-        if (params.MaxIndex()) 
+        if (params.MaxIndex())
             this.hwnd := __Add(params*)
         else
             return this
@@ -21,7 +21,7 @@ class scintilla {
               I decided to make most of those operations internally to have cleaner code later on.
             */
 
-            (msg = "GetText") ? (VarSetCapacity(lParam, wParam * (a_isunicode ? 2 : 1)), lParam := &lParam, buf:=true) : null
+            (msg = "GetText") ? (VarSetCapacity(lParam, wParam * (a_isunicode ? 2 : 1)+8), lParam := &lParam, buf:=true) : null
             (msg = "GetLine") ? (VarSetCapacity(lParam, this.linelength(wParam)+1 * (a_isunicode ? 2 : 1)), lParam := &lParam, buf:=true) : null
             (msg = "GetTextRange") ? (range:=abs(wParam.1 - wParam.2)+1, dSize :=  __sendEditor(this.hwnd, "GetLength")
                                       ,VarSetCapacity(lParam, range > dSize ? (dSize, wParam.2 := dSize) : range)
@@ -31,8 +31,11 @@ class scintilla {
                                       ,NumPut(&lParam,textRange,8,"UInt")
                                       ,blParam := &lParam, wParam := false,lParam := &textRange, buf:=true) : null
 
-            ;inStr(lParam, "0x") ? (lParam := (lParam & 0xFF) <<16 | (lParam & 0xFF00) | (lParam >>16),lParam := SubStr(lParam, 0x1)) : null
-            ;inStr(wParam, "0x") ? (wParam := (wParam & 0xFF) <<16 | (wParam & 0xFF00) | (wParam >>16),wParam := SubStr(wParam, 0x1)) : null
+            if (inStr(msg, "StyleSet")) ; only shift bytes if we are setting style colors.
+            {
+                inStr(lParam, "0x") ? (lParam := (lParam & 0xFF) <<16 | (lParam & 0xFF00) | (lParam >>16),lParam := SubStr(lParam, 0x1)) : null
+                inStr(wParam, "0x") ? (wParam := (wParam & 0xFF) <<16 | (wParam & 0xFF00) | (wParam >>16),wParam := SubStr(wParam, 0x1)) : null
+            }
 
             if ((!(wParam+1) && !__SCI(wParam)) || (!(lParam+1) && !__SCI(lParam))) ; only run this if text received is not one of the SCI variables
             {
@@ -88,21 +91,21 @@ class scintilla {
         Styles      -   List of window style variable names separated by spaces.
                         The WS_ prefix for the variables is optional.
                         Full list of Style names can be found at
-                        <http://msdn.microsoft.com/en-us/library/ms632600%28v=vs.85%29.aspx>.
-
+                        <http://msdn.microsoft.com/en-us/library/czada357.aspx>.
         MsgHandler  -   Name of the function that will handle the window messages sent by the control.
                         This is very useful for when creating personalized lexing or folding for your control.
 
         Returns:
-        HWND - Component handle.
+        HWND        -   Component handle.
 
         Examples:
         (start code)
         #include ..\SCI.ahk
         #singleinstance force
 
-        ; Add a component with default values.
-        ; It expects scilexer.dll to be on the script's location.
+        ;---------------------
+        ; This script adds a component with default values.
+        ; If no path was specified when creating the object it expects scilexer.dll to be on the script's location.
         ; The default values are calculated to fit optimally on a 600x400 GUI/Control
 
         Gui +LastFound
@@ -118,37 +121,40 @@ class scintilla {
         #include ..\SCI.ahk
         #singleinstance force
 
-        ;---------------------
-        ; Add a component with default values.
-        ; It expects scilexer.dll to be on the script's location.
-        ; This script also adds some styles.
-        ; If variables "x,y,w,h,DllPath" are empty the default values are used.
-        ; We can create the object without any parameters and specify them with the add function below
+        ; Add multiple components.
 
         Gui +LastFound
-        sci:= new scintilla
-        sci.Add(WinExist(), x, y, w, h, DllPath, "WS_CHILD WS_BORDER WS_VISIBLE")
+        hwnd:=WinExist()
+
+        sci1 := new scintilla(hwnd, 0, 0, 590, 190) ; you can put the parameters here
+        sci2 := new scintilla
+
+        sci2.add(hwnd, 0, 200, 590, 190) ; or you can use the add function like this
 
         Gui, show, w600 h400
         return
 
         GuiClose:
+            exitapp
 
         ;---------------------
         #include ..\SCI.ahk
         #singleinstance force
 
-        ; Add a component embedded in a tab with additional code for
-        ; hiding/showing the component depending on which tab is open.
-        ; As variables "x,w,h" are empty the default values are used.
+        ; Here we add a component embedded in a tab.
+        ; If the variables "x,w,h" are empty the default values are used.
 
         Gui, add, Tab2, HWNDhwndtab x0 y0 w600 h420 gtabHandler vtabLast,one|two
 
         sci := new scintilla
-        sci.Add(hwndtab, x, 25, w, h, a_scriptdir "\scilexer.dll", "Child Border Visible")
+        sci.Add(hwndtab, x, 25, w, h, a_scriptdir "\scilexer.dll")
 
         Gui, show, w600 h420
         return
+
+        ; This additional code is for hiding/showing the component depending on which tab is open
+        ; In this example the Tab named "one" is the one that contains the control.
+        ; If you switch the words "show" and "hide" the component will be shown when the tab called "two" is active.
 
         tabHandler:                                 ; Tab Handler for the Scintilla Control
         Gui, submit, Nohide
@@ -206,7 +212,7 @@ __Add(hParent=0, x=5, y=5, w=590, h=390, DllPath="", Styles="", MsgHandler=""){
 }
 
 /*
-    Function : sendEditor
+    Function : __sendEditor
     Posts the messages used to modify the control's behaviour.
     
     *This is an internal function and it is not needed in normal situations. Please use the scintilla object to call all functions.
@@ -218,7 +224,8 @@ __Add(hParent=0, x=5, y=5, w=590, h=390, DllPath="", Styles="", MsgHandler=""){
     hwnd    -   The hwnd of the control that you want to operate on. Useful for when you have more than 1
                 Scintilla components in the same script. The wrapper will remember the last used hwnd,
                 so you can specify it once and only specify it again when you want to operate on a different
-                component.
+                component. 
+                *Note: This is converted internally by the wrapper from the object calling method. It is recommended that you dont use this function.*
     msg     -   The message to be posted, full list can be found here:
                 <http://www.scintilla.org/ScintillaDoc.html>
     wParam  -   wParam for the message
@@ -241,6 +248,7 @@ __sendEditor(hwnd, msg=0, wParam=0, lParam=0){
     if !init
     {
         ; Main Scintilla Functions
+        ; Used to do conversions from the function name to the ID before sending the message to the scintilla dll
 
         SCI_ADDTEXT:=2001,SCI_ADDSTYLEDTEXT:=2002,SCI_INSERTTEXT:=2003,SCI_CLEARALL:=2004,SCI_CLEARDOCUMENTSTYLE:=2005,SCI_GETLENGTH:=2006
         SCI_GETCHARAT:=2007,SCI_GETCURRENTPOS:=2008,SCI_GETANCHOR:=2009,SCI_GETSTYLEAT:=2010,SCI_REDO:=2011,SCI_SETUNDOCOLLECTION:=2012
