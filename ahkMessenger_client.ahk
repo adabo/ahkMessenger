@@ -144,6 +144,12 @@ WS_OnRead(socket){
 
 }
 
+GuiSize:
+    tooltip % a_guiwidth " " a_guiheight
+    ; guicontrol, move, % sci[1].hwnd, % "w" a_guiwidth " h" a_guiheight
+return
+
+
 MainGuiClose:
 ExitRoutine:
 	WS_CloseSocket(client)

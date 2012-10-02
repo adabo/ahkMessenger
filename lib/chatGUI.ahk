@@ -39,10 +39,10 @@ CreateGui(){
     Gui, Main: Add, Text     , x17  y263 w51  h13  HwndmTNkN, Nickname:
     Gui, Main: Add, Edit     , x78  y260 w100 h21  HwndmENkN vEdNick, % (type = "client" ? "Guest" A_TickCount : "Server")
     Gui, Main: Add, Text     , x258 y263 w34  h13  HwndmTSIP , Server:
-    Gui, Main: Add, Edit     , x308 y260 w100 h21  HwndmESIP vEdServIP Disabled, % (type = "client" ? "99.23.4.199" : "0.0.0.0") 
+    Gui, Main: Add, Edit     , x308 y260 w100 h21  HwndmESIP vEdServIP Disabled, % (type = "client" ? "99.23.4.199" : "0.0.0.0")
 
-    if (type = "client")                           
-    {                                              
+    if (type = "client")
+    {
         Gui, Main: Add, Button, x186 y260 w55       HwndmBCNk gChangeNick, Change
         Gui, Main: Add, Button, x420 y260 w55 h23   HwndmBCon gConnectToServer, Connect
         Gui, Main: Add, CheckBox, x485 y265 w43 h13 HwndmCTst gDisableIP vTest Checked1, Test
@@ -51,20 +51,27 @@ CreateGui(){
         Attach(mCTst, "y r1")
     }
 
-    Attach(mELog, "w h r1")
-    Attach(mLUsl, "x h r1")
-    Attach(mESmg, "y w r1")
-    Attach(mBSmg, "x y r")
-    Attach(mBCde, "x y r")
-    Attach(mGCon, "y w r1")
-    Attach(mTNkN, "y r1")
-    Attach(mENkN, "y r1")
-    Attach(mTSIP, "y r1")
-    Attach(mESIP, "y r1")
+    ; Attach(mELog, "w h r")
+    Attach(mLUsl, "x h r2")
+    Attach(mESmg, "y w r")
+    Attach(mBSmg, "x y r2")
+    Attach(mBCde, "x y r2")
+    Attach(mGCon, "y w r")
+    Attach(mTNkN, "y r")
+    Attach(mENkN, "y r")
+    Attach(mTSIP, "y r")
+    Attach(mESIP, "y r")
+    
+    if (type = "client")
+    {
+        Attach(mBCNk, "y r2")
+        Attach(mBCon, "y r2")
+        Attach(mCTst, "y r")
+    }
 
     Gui, Code: Default
     Gui, Code: +LastFound
-    hwnd := WinExist(), sci[2] := new scintilla(hwnd, 0,0,400,400,"", a_scriptdir "\lib") 
+    hwnd := WinExist(), sci[2] := new scintilla(hwnd, 0,0,400,400,"", a_scriptdir "\lib")
 
     Gui, Code: Font, s10, Lucida Console
     Gui, Code: Add, ListView, x420 y8 w140 h400 -Hdr -Multi gListViewNotifications, Icon|Users
@@ -72,15 +79,15 @@ CreateGui(){
     LV_SetImageList(ImageListID)
     IL_Add(ImageListID, "shell32.dll", 71)
     IL_Add(ImageListID, "shell32.dll", 291)
-    
+
     Gui, Code: Font, s8, Tahoma
     Gui, Code: Add, Button, x335 y410 w75 gSendCode, Send ;Sends to server
-    
+
     Gui, Main: Submit, NoHide
     setup_Scintilla(sci, EdNick)
-    
+
     Gui, Main: Show,, % "ahkMessenger " (type = "client" ? "Client" : "Server")
-    
+
     if (type = "client")
         Pause, On
     return
@@ -182,12 +189,12 @@ CreateGui(){
         {
             Gui, Code: Default
             LV_GetText(nick, A_EventInfo, 2)
-            
+
             if (type = "client")
                 WS_Send(client, "RQST||" . nick)
             else if (type = "server")
             {
-                skt := userName[nick]            
+                skt := userName[nick]
                 sci[2].ClearAll(), sci[2].AddText(strLen(str:=userCodes[skt]), str), sci[2].ScrollCaret()
                 LV_Modify(A_EventInfo, "Icon" . 0)
             }
@@ -343,11 +350,11 @@ setup_Scintilla(sci, localNick=""){
         monitorcount monitorprimary monitorname monitorworkarea pid base useunsetlocal useunsetglobal
         localsameasglobal
     )
-    
+
     ;{ sci[1] Configuration
-    sci[1].SetWrapMode("SC_WRAP_WORD"), sci[1].SetMarginWidthN(1, 0), sci[1].SetLexer(2)
+    sci[1].SetWrapMode("SC_WRAP_WORD"), sci[1].SetMarginWidthN(1, 0), sci[1].SetLexer(6)
     sci[1].StyleSetBold("STYLE_DEFAULT", true), sci[1].StyleClearAll()
-    
+
     sci[1].SetKeywords(0,localNick)
 
     sci[1].StyleSetFore(0,0x000000), sci[1].StyleSetBold(0, false)      ; SCE_MSG_DEFAULT
@@ -355,11 +362,11 @@ setup_Scintilla(sci, localNick=""){
     sci[1].StyleSetFore(2,0x0000FF)                                     ; SCE_MSG_OTHERNICK
     sci[1].StyleSetFore(3,0x0E0E0E), sci[1].StyleSetBold(3, false)      ; SCE_MSG_INFOMESSAGE
     ;}
-    
+
     ;{ sci[2] Configuration
-    sci[2].SetWrapMode("SC_WRAP_WORD"), sci[2].SetMarginWidthN(0, 40), sci[2].SetMarginWidthN(1, 16), sci[2].SetLexer(3)
+    sci[2].SetWrapMode("SC_WRAP_WORD"), sci[2].SetMarginWidthN(0, 40), sci[2].SetMarginWidthN(1, 16), sci[2].SetLexer(6)
     sci[2].StyleSetBold("STYLE_DEFAULT", true), sci[2].StyleClearAll()
-    
+
     ; Change this in to a loop
     sci[2].SetKeywords(0,controlflow)
     sci[2].SetKeywords(1,commands)
@@ -369,9 +376,9 @@ setup_Scintilla(sci, localNick=""){
     sci[2].SetKeywords(5,variables)
     sci[2].SetKeywords(6,specialparams)
     sci[2].SetKeywords(7,userdefined)
-    
+
     sci[2].StyleSetBold("STYLE_LINENUMBER", false)
-    
+
     ; Change this in to a loop
     sci[2].StyleSetFore(0,0x000000), sci[2].StyleSetBold(0, false)      ; SCE_AHK_DEFAULT
     sci[2].StyleSetFore(1,0x009900), sci[2].StyleSetBold(1, false)      ; SCE_AHK_COMMENTLINE
@@ -394,9 +401,9 @@ setup_Scintilla(sci, localNick=""){
     sci[2].StyleSetFore(18,0x00F000)                                    ; SCE_AHK_WORD_UD
     sci[2].StyleSetFore(19,0xFF9000)                                    ; SCE_AHK_VARREFKW
     sci[2].StyleSetFore(20,0xFF0000)                                    ; SCE_AHK_ERROR
-    
+
     ;}
-    
+
     return  controlflow := commands := functions := directives := keysbuttons := variables := specialparams := ""
 }
 
