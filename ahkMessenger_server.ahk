@@ -172,16 +172,18 @@ WS_OnRead(socket){
     }
     else if (msgType == "COMD||")
     {
-        RegexMatch(ClientMessage, "^/(.+?) ", cmd)
-        if      (cmd1 == "")
-            WS_Send(NewConnection[socket], "MESG||Notice from Server: You want to to send some command?")
-        else if (cmd1 == "/JOIN")
-            WS_Send(NewConnection[socket], "MESG||Notice from Server: You want to join some channel?")
-        else if (cmd1 == "/LEAVE")
-            WS_Send(NewConnection[socket], "MESG||Notice from Server: You want to leave some channel?")
-        else if (cmd1 == "/MOTD")
-            WS_Send(NewConnection[socket], "MESG||Notice from Server: You want the Message Of The Day?")
-        ;else if (cmd1 == "/EXIT")
+        RegexMatch(ClientMessage, "\/(\w+) ?", cmd)
+        if      (cmd1 == "JOIN")
+            WS_Send(NewConnection[socket], "COMD||Notice from Server: You want to join some channel?")
+        else if (cmd1 == "LEAVE")
+            WS_Send(NewConnection[socket], "COMD||Notice from Server: You want to leave some channel?")
+        else if (cmd1 == "MOTD")
+            WS_Send(NewConnection[socket], "COMD||Notice from Server: You want the Message Of The Day?")
+        else if (cmd1 == "HELP")
+            WS_Send(NewConnection[socket], "COMD||Notice from Server: Commands:`n  JOIN`n  LEAVE`n  MOTD`n  HELP")
+        else
+            WS_Send(NewConnection[socket], "COMD||Notice from Server: Acceptable commands are:`n  JOIN`n  LEAVE`n  MOTD`n  HELP")
+        ;else if (cmd1 == "EXIT")
     }
 }
 

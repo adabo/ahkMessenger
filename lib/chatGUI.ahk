@@ -151,7 +151,7 @@ CreateGui(){
             }
             for key, value in NewConnection
                 if (NewConnection[key] != 000)
-                    WS_Send(NewConnection[key], "MESG||" . EdNick . ": " . GuiMessage)
+                    WS_Send(NewConnection[key], "MESG||" . EdNick . "||" . GuiMessage)
             sci[1].SetReadOnly(false)
             sci[1].AddText(strLen(str:=EdNick ": " GuiMessage "`n"), str), sci[1].GotoPos(sci[1].GetLength())
             sci[1].SetReadOnly(true)
@@ -197,7 +197,6 @@ CreateGui(){
             }
         }
     return
-
 
     ; Menu Labels
     Edit:

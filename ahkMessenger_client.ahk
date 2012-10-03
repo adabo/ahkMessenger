@@ -41,11 +41,10 @@ WS_OnRead(socket){
 
     msgType :=  SubStr(ServerMessage, 1 , 6)
     StringTrimLeft, ServerMessage, ServerMessage, 6
-
+    RegexMatch(ServerMessage, "^(.+?)\|\|", match)
     if      (msgType == "USLS||")
     {
 
-    	RegexMatch(ServerMessage, "^(.+?)\|\|", match)
         StringTrimLeft, ServerMessage, ServerMessage, strLen(match1) + 2
 
     	Gui, Main: Default
@@ -61,7 +60,7 @@ WS_OnRead(socket){
 	else if (msgType == "CODE||")
 	{
 		Gui, Code: Default
-		RegexMatch(ServerMessage, "^(.+?)\|\|", match)
+		;RegexMatch(ServerMessage, "^(.+?)\|\|", match)
 		StringTrimLeft, ServerMessage, ServerMessage, strLen(match1) + 2 ;Get requested name from message
 
 		;============== check if name exist in listview ===================;
@@ -79,20 +78,12 @@ WS_OnRead(socket){
 	}
 	else if (msgType == "MESG||")
 	{
-		RegexMatch(ServerMessage, "^(.+?)\|\|", match)
-		msgbox %match1%
-		if (match1 == "Server")
-		{
-	    	sci[1].AddText(strLen(str:= ServerMessage "`n"), str), sci[1].ScrollCaret()
-			return	
-		}
 		StringTrimLeft, ServerMessage, ServerMessage, strLen(match1) + 2 ;Get requested name from message
-  		sci[1].AddText(strLen(str:= match1 . ": " . ServerMessage "`n"), str), sci[1].ScrollCaret()
+    	sci[1].setReadOnly(false)
+        sci[1].AddText(strLen(str:=match1 . ": " . ServerMessage "`n"), str), sci[1].GotoPos(sci[1].GetLength())
+        sci[1].setReadOnly(true)
         IfWinnotActive, ahkMessenger Client
             soundplay, *48
-    	sci[1].setReadOnly(false)
-        sci[1].AddText(strLen(str:=ServerMessage "`n"), str), sci[1].GotoPos(sci[1].GetLength())
-        sci[1].setReadOnly(true)
 	}
 	else if (msgType == "NWCD||")
 	{
@@ -158,6 +149,14 @@ WS_OnRead(socket){
         sci[1].SetKeywords(1,nickList)
         sci[1].setReadOnly(false)
         sci[1].AddText(strLen(str:="Notice: " gOldNick1 . " has changed their nick to: " . gNewNick1 . "`n"), str), sci[1].GotoPos(sci[1].GetLength())
+        sci[1].setReadOnly(true)
+    }
+    else if (msgType == "COMD||")
+	{
+		;msgbox %ServerMessage%
+		;StringTrimLeft, ServerMessage, ServerMessage, 8
+    	sci[1].setReadOnly(false)
+    	sci[1].AddText(strLen(str:=ServerMessage "`n"), str), sci[1].GotoPos(sci[1].GetLength())
         sci[1].setReadOnly(true)
     }
 }
