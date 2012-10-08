@@ -1,32 +1,38 @@
-/* Legend:
-		MESG|| = Message
-		NWCD|| = New code
-		USRN|| = User name
-		RQST|| = Request Code
-		USLS|| = User list
-		DISC|| = User Disconnected
+/*
+    Legend:
+        MESG|| = Message
+        NWCD|| = New code
+        USRN|| = User name
+        RQST|| = Request Code
+        USLS|| = User list
+        DISC|| = User Disconnected
         NKCH|| = User Changed Nick
 */
+; includes
+    #include <ws>
+    #include <SCI>
+    #include <chatGUI>
+    #include <attach>
+    #singleinstance force
 
-#include <ws>
-#include <SCI>
-#include <chatGUI>
-#include <attach>
-#singleinstance force
-
-type := "server"
-
-OnExit, ExitRoutine
+; On exit
+    OnExit, ExitRoutine
 
 ; Variables/Objects
-    NewConnection := Object()
-    userCodes := Object()
-    userNick := Object()
+    type := "server"
+    chan           := Object()  ; chan[#chan] := #chan  (Array of all occupied channels)
+    allNicksInChan := Object()  ; allNicksInChan[#chan, nick] := nick
+    chansNickIsIn  := Object()  ; chan := chansNickIsIn[nick, #chan]
+    userCodes      := Object()
+    socketFromNick := Object()
     nickFromSocket := Object()
-    serverIP := "000"
+    allNicksInChanMaxIndex := Object()
+    allNicksInChanMaxIndex["#Main"] := 0
+
+    channelNicks[nChan] := Object()
 
 ; GUI
-	CreateGui()
+    CreateGui()
 
     if (EdNick != "Server")
     {
@@ -45,9 +51,6 @@ OnExit, ExitRoutine
     WS_Bind(server, EdServIP, "12345")
     WS_Listen(server)
     WS_HandleEvents(server, "ACCEPT READ CLOSE")
-    NewConnection[serverIP] := serverIP
-    userNick[EdNick] := serverIP
-    nickFromSocket[000] := "Server"
 
     if (!EdNick)
     {
@@ -56,162 +59,219 @@ OnExit, ExitRoutine
     }
     Gui, Main: Default
     LV_Add("", "", EdNick)
+    WinMove, server,, 0, 0
 return
 
 WS_OnAccept(socket){
-    global NewConnection
-    userSock := WS_Accept(socket, client_ip, client_port)
-    NewConnection[userSock] := userSock
+    global socketFromNick
+    WS_Accept(socket, client_ip, client_port)
 }
 
 ; Send to Multiple clients
 WS_OnRead(socket){
-    global Log, LogID, NewConnection, sci, userCodes, userNick, nickFromSocket, EdNick
+    global Log, LogID, sci, userCodes, socketFromNick, nickFromSocket, EdNick, allNicksInChan, allNicksInChanMaxIndex, chansNickIsIn, chan
 
     sci[1].GotoPos(sci[1].GetLength())
     WS_Recv(socket, ClientMessage)
-    msgType :=  SubStr(ClientMessage, 1 , 6)
-    StringTrimLeft, ClientMessage, ClientMessage, 6
-
-    if      (msgType == "USRN||")
+    RegexMatch(ClientMessage, "^(\w+)\|\|\/?(\w+)\|?\|?(#?\w+)?\|?\|?(.+)?", arg)  ; Match the socketFromNick
+    msgType :=  arg1, nNick := arg2, nChan := arg3, nMsg := arg4
+    ;msgbox msgType = %msgType%`nnNick = %nNick%`nnChan = %nChan%`nnMsg = %nMsg%
+    if      (msgType == "USRN")
     {
-        userNick[ClientMessage] := socket
-        nickFromSocket[socket] := ClientMessage
-        for key, value in nickFromSocket
-            nickList .= value . (key == nickFromSocket.MaxIndex() ? "" : " ")
-        for key, value in NewConnection
-            if (key != 000)
-                WS_Send(key, "USLS||" . nickFromSocket[socket] . "||" . nickList)
+        socketFromNick[nNick] := socket, nickFromSocket[socket] := nNick
+        WS_Send(socket, "TITL||" . socket . "||")
 
-        StringReplace, nickList, nickList, %EdNick%%a_space%,,A
-        sci[1].SetKeywords(1,nl:=nickList)
-
-        ;========Update Server listview main====
-        Gui, Main: Default
-        lV_Delete()
-        Loop, Parse, nickList, %A_Space%, %A_Space%
-            if (A_LoopField != "Server")
-                LV_Add("" ,"", A_LoopField) ;The userNick
-        sci[1].setReadOnly(false)
-        sci[1].AddText(strLen(str:="Notice: " ClientMessage . " has connected.`n"), str), sci[1].ScrollCaret()
-        sci[1].setReadOnly(true)
-        ;=======================================
+        ;=== For Server 
+        sci[1].SetKeywords(1,nickList)
     }
-    else if (msgType == "MESG||")
+    else if (msgType == "MESG")
     {
-        RegexMatch(ClientMessage, "^(.+?)\|\|", match)
-        StringTrimLeft, ClientMessage, ClientMessage, strLen(match1) + 2 
-        for key, value in NewConnection
-            if (NewConnection[key] != 000)
-                WS_Send(NewConnection[key], "MESG||" . match1 . "||" . ClientMessage)
+        for key, value in socketFromNick                                                     ; Send messages to all
+            if (allNicksInChan[nChan, nickFromSocket[value]] == nickFromSocket[value])       ; users according to
+                WS_Send(socketFromNick[key], "MESG||" . nNick . "||" . nChan . "||" . nMsg)  ; the channels they are
+                                                                                             ; associated with
         ;=============== For Server GUI =================
         sci[1].setReadOnly(false)
-        sci[1].AddText(strLen(str:= match1 . ": " . ClientMessage "`n"), str), sci[1].ScrollCaret()
+        sci[1].AddText(strLen(str:= nNick . "(@" . nChan . "): " . nMsg "`n"), str), sci[1].ScrollCaret()
         sci[1].setReadOnly(true)
         IfWinnotActive, ahkMessenger Server
             soundplay, *48
         ;================================================
     }
-    else if (msgType == "RQST||")
+    else if (msgType == "RQST")
     {
-        skt := userNick[ClientMessage]
-        WS_Send(socket, "CODE||" . ClientMessage . "||" . userCodes[skt])
+        skt := socketFromNick[nNick]
+        WS_Send(socket, "CODE||" . nNick . "||" . userCodes[skt])
     }
-    else if (msgType == "NWCD||")
+    else if (msgType == "NWCD")
     {
-        userCodes[socket] := ClientMessage
-        for key, value in NewConnection
-            if (NewConnection[key] != 000)
-                WS_Send(NewConnection[key], "NWCD||" . nickFromSocket[socket])
+        nNick := nickFromSocket[socket]
+        nCode := arg2
+        userCodes[socket] := nCode
+        for key, value in socketFromNick
+            WS_Send(socketFromNick[key], "NWCD||" . nNick)
 
         ;=========== Update Server code window ListView ===================;
         Gui, Code: Default
         sci[1].setReadOnly(false)
-        sci[1].AddText(strlen(str := "Notice: New code from """ . nickFromSocket[socket] . """`n"), str), sci[1].ScrollCaret()
+        sci[1].AddText(strlen(str := "Notice: New code from """ . nNick . """`n"), str), sci[1].ScrollCaret()
         sci[1].setReadOnly(true)
         loop % LV_GetCount()
         {
             LV_GetText(rowText, A_Index, 2)
-            if (nickFromSocket[socket] == rowText)
+            if (nNick == rowText)
             {
-                namExist := True
+                nickExist := True
                 LV_Modify(A_Index, "Icon" . 1, "")
                 break
             }
             else
-                namExist := False
+                nickExist := False
         }
-        if (!namExist)
-            LV_Add("Icon" . 1,"", nickFromSocket[socket])
+        if (!nickExist)
+            LV_Add("Icon" . 1,"", nNick)
         ;===================================================================;
     }
-    else if (msgType == "NKCH||")
+    else if (msgType == "NKCH")
     {
+        /*
+            When a client changes their nick the
+            server must send updates to all the
+            channels the client occupies
 
+            First start with storing the oldnick.
+            Then remove the old array links using
+            oldNick and skt
+
+            Use nNick to to create new array elements.
+        */
         oldNick := nickFromSocket[socket]
-        nickFromSocket[socket] := ClientMessage
-        for key, value in nickFromSocket
-            nickList .= value . " "
-        for key, value in NewConnection
-            if (key != 000)
-                WS_Send(key, "NKCH||" . oldNick . "||" . ClientMessage . "||" . nickList)
+        nickFromSocket.Remove(socket, ""), socketFromNick.Remove(oldnick)
+        nNick := arg2
+        socketFromNick[nNick] := socket, nickFromSocket[socket] := nNick
 
-        StringReplace, nickList, nickList, %EdNick%%a_space%,,A
+        /*
+            Need To combine this chansNickIsIn for block with the next one.
+
+            This block updates the channel list for each channel you occupy
+            with the new nick the client provided.
+        */
+        for k, v in chansNickIsIn[oldNick]
+        {
+            for i, j in allNicksInChan[v]
+            {
+                if (j == oldNick)
+                {
+                    allNicksInChan[v].Remove(oldNick)
+                    allNicksInChan[v, nNick] := nNick
+                }
+            }
+            chansNickIsIn[nNick, v] := v  ; chansNickIsIn["SomeNick", "#SomeChan"] := "#SomeChan"
+        }
+
+        /*
+            This is the 2nd for block. How do
+            I combine these two? The one above and the one below.
+        */
+        for k, v in chansNickIsIn[oldNick]
+        {
+            for i, j in allNicksInChan[v]
+            {
+                for key, value in allNicksInChan[v]
+                    nickList .= value . (A_Index != allNicksInChanMaxIndex[v] ? " " : "")
+                WS_Send(socketFromNick[j], "NKCH||" . oldNick . "||" . nNick . "||" . nickList . "||" . v)
+                nickList := ""
+            }
+            chansNickIsIn[nNick, v] := v  ; chansNickIsIn["SomeNick", "#SomeChan"] := "#SomeChan"
+        }
+        chansNickIsIn.Remove(oldNick)
+
+        StringReplace, nickList, nickList, %EdNick%%a_space%,,A  ; Remove "Server" name from list
         sci[1].SetKeywords(1,nl:=nickList)
 
         ;========Update Server listview main====
         Gui, Main: Default
         lV_Delete()
         Loop, Parse, nickList, %A_Space%
-            if (A_LoopField != "Server")
-                LV_Add("" ,"", A_LoopField) ;The userNick
+            LV_Add("" ,"", A_LoopField)
         sci[1].setReadOnly(false)
-        sci[1].AddText(strLen(str:="Notice: " oldNick . " has changed their nick to: " . ClientMessage . "`n"), str), sci[1].ScrollCaret()
+        sci[1].AddText(strLen(str:="Notice: " oldNick . " has changed their nick to: " . nNick . "`n"), str), sci[1].ScrollCaret()
         sci[1].setReadOnly(true)
         ;=======================================
     }
-    else if (msgType == "COMD||")
+    else if (msgType == "COMD")
     {
-        RegexMatch(ClientMessage, "\/(\w+) ?", cmd)
-        if      (cmd1 == "JOIN")
-            WS_Send(NewConnection[socket], "COMD||Notice from Server: You want to join some channel?")
-        else if (cmd1 == "LEAVE")
-            WS_Send(NewConnection[socket], "COMD||Notice from Server: You want to leave some channel?")
-        else if (cmd1 == "MOTD")
-            WS_Send(NewConnection[socket], "COMD||Notice from Server: You want the Message Of The Day?")
-        else if (cmd1 == "HELP")
-            WS_Send(NewConnection[socket], "COMD||Notice from Server: Commands:`n  JOIN`n  LEAVE`n  MOTD`n  HELP")
+        RegexMatch(ClientMessage, "^COMD\|\|\/(\w+) (.+)", arg)          ; args from first Regex not valid here (Line 74)
+        cmd := arg1, nChan := arg2, nNick := nickFromSocket[socket]
+        if      (cmd == "JOIN")
+        {
+            if (chansNickIsIn[nNick, nChan])  ; If the client tries to join a channel they are alread in
+            {
+                WS_Send(socket, "COMD||Notice: You are already in '" . nChan "'||")
+                return
+            }
+            allNicksInChan[nChan, nNick] := nNick
+            chansNickIsIn[nNick, nChan] := nChan
+            if (chan[nChan])  ; The channel exists and sends notice to all clients in channel
+            {
+                allNicksInChanMaxIndex[nChan]++
+                for key, value in allNicksInChan[nChan]
+                    nickList .= value . (A_Index != allNicksInChanMaxIndex[nChan] ? " " : "")
+                for k, v in allNicksInChan[nChan]
+                    WS_Send(socketFromNick[v], "CHAN||ENTER||" . nChan . "||" . nickList . "||" . nickFromSocket[socket])  ; tell client to enter. Send 5th argument
+
+            }
+            else ; If channel does not exist create it and tell client to enter
+            {
+                allNicksInChanMaxIndex[nChan] := 1
+                chan[nChan] := nChan
+                nickList := nNick
+                WS_Send(socketFromNick[nNick], "CHAN||ENTER||" . nChan . "||" . nickList . "||" . nickFromSocket[socket])
+            }
+        }
+        else if (cmd == "LEAVE")
+            WS_Send(socket, "COMD||Notice from Server: You want to leave some channel?")
+        else if (cmd == "MOTD")
+            WS_Send(socket, "COMD||Notice from Server: You want the Message Of The Day?")
+        else if (cmd == "HELP")
+            WS_Send(socket, "COMD||Notice from Server: Commands:`n  JOIN`n  LEAVE`n  MOTD`n  HELP")
         else
-            WS_Send(NewConnection[socket], "COMD||Notice from Server: Acceptable commands are:`n  JOIN`n  LEAVE`n  MOTD`n  HELP")
-        ;else if (cmd1 == "EXIT")
+            WS_Send(socket, "COMD||Notice from Server: Acceptable commands are:`n  JOIN`n  LEAVE`n  MOTD`n  HELP")
+        ;else if (cmd == "EXIT")
     }
 }
 
 ; Remove client from array
 WS_OnCLose(socket){
-    global NewConnection, userCodes, userNick, nickFromSocket
+    global socketFromNick, userCodes, socketFromNick, nickFromSocket, allNicksInChan, chansNickIsIn, allNicksInChanMaxIndex
 
-        Gui, Main: Default
-        loop % LV_GetCount()
-        {
-            LV_GetText(nm, A_Index, 2)
-            if (nickFromSocket[socket] == nm)
-                lV_Delete(A_Index)
-        }
+    Gui, Main: Default
+    loop % LV_GetCount()
+    {
+        LV_GetText(nm, A_Index, 2)
+        if (nickFromSocket[socket] == nm)
+            lV_Delete(A_Index)
+    }
 
-    for key, value in NewConnection
-        if (NewConnection[key] != 000)
-            WS_Send(value, "DISC||" . nickFromSocket[socket])
+    for key, value in socketFromNick
+        WS_Send(value, "DISC||" . nickFromSocket[socket])
 
     userCodes.Remove(socket, "")
-    userNick.Remove(nickFromSocket[socket])
-    NewConnection.Remove(socket, "")
+    for k, v in chansNickIsIn[nickFromSocket[socket]]
+        allNicksInChan[v].Remove(nickFromSocket[socket], "")
+    chansNickIsIn.Remove(nickFromSocket[socket], "")
+    socketFromNick.Remove(nickFromSocket[socket], "")
+    socketFromNick.Remove(socket, "")
     nickFromSocket.Remove(socket, "")
+    allNicksInChanMaxIndex--
 }
-
+;==== For DEBUGGING ONLY 
+~*Esc::
+;==== End DEBUG
 MainGuiClose:
 ExitRoutine:
-    WS_CloseSocket(NewConnection)
+    for k, v in socketFromNick
+        WS_CloseSocket(v)
     WS_CloseSocket(server)
     WS_Shutdown()
 ExitApp

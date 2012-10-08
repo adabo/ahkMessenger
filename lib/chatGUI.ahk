@@ -28,16 +28,18 @@ CreateGui(){
     Menu, mMenuBar, Add, Edit
     Menu, mMenuBar, Add, View
     Menu, mMenuBar, Add, Tools
-    Gui, Main: +Resize MinSize545x324
+    Gui, Main: Default
+    Gui, Main: +Resize MinSize545x324 
     Gui, Main: Menu, mMenuBar
     Gui, Main: Add, StatusBar, 0x100
+        SB_SetParts(80, 80, 300)
     Gui, Main: Add, ListView , x415 y6   w120 h198 HwndmLUsl -Hdr -Multi, Icon|Users
     Gui, Main: Add, Edit     , x10  y210 w400      HwndmESmg -WantReturn +WantTab vGuiMessage gMessageInput -0x100
-    Gui, Main: Add, Button   , x415 y210 w55  h23  HwndmBSmg Default gSendMessage, Send
+    Gui, Main: Add, Button   , x415 y210 w55  h23  HwndmBSmg Default gHandleEnter, Send
     Gui, Main: Add, Button   , x480 y210 w55  h23  HwndmBCde gCodeWin, Code
     Gui, Main: Add, GroupBox , x5   y238 w530 h57  HwndmGCon, Connection Settings
     Gui, Main: Add, Text     , x17  y263 w51  h13  HwndmTNkN, Nickname:
-    Gui, Main: Add, Edit     , x78  y260 w100 h21  HwndmENkN vEdNick, % (type = "client" ? "Guest" A_TickCount : "Server")
+    Gui, Main: Add, Edit     , x78  y260 w100 h21  HwndmENkN vEdNick -WantReturn, % (type = "client" ? "Guest" A_TickCount : "Server")
     Gui, Main: Add, Text     , x258 y263 w34  h13  HwndmTSIP , Server:
     Gui, Main: Add, Edit     , x308 y260 w100 h21  HwndmESIP vEdServIP Disabled, % (type = "client" ? "99.23.4.199" : "0.0.0.0")
 
@@ -85,11 +87,20 @@ CreateGui(){
 
     Gui, Main: Submit, NoHide
     setup_Scintilla(sci, EdNick)
-
     Gui, Main: Show,, % "ahkMessenger " (type = "client" ? "Client" : "Server")
+    GuiControl, Main: Focus, GuiMessage
 
     if (type = "client")
         Pause, On
+    return
+
+    HandleEnter:
+        Gui, Main: Submit, NoHide
+        GuiControlGet, edVar, FocusV 
+        if (edVar == "EdNick")
+            GoSub ChangeNick
+        else if (edVar == "GuiMessage")
+            GoSub SendMessage
     return
 
     MessageInput:
@@ -111,7 +122,6 @@ CreateGui(){
         }
         else
             msgbox, Please close the window if you need to reconnect.
-
     return
 
     DisableIP:
@@ -134,24 +144,68 @@ CreateGui(){
         if (!GuiMessage)
             return
         sci[1].GotoPos(sci[1].GetLength())
-        RegexMatch(GuiMessage, "^/(.+?)", m)
+        RegexMatch(GuiMessage, "^/(.+?)", arg)
         if (type = "client")
         {
-            if (m1)
-                WS_Send(client, "COMD||" . GuiMessage)
+            if (arg1)  ; If the message is preppended with a /COMMAND
+            {
+                chanSwitch := arg1
+                if (chanSwitch == "#")  ; This condtion will not Ws_Send to server. Client side channel switch
+                {
+                    RegexMatch(GuiMessage, "^/(#.+)", arg)
+                    nChan := arg1
+                    if (occupiedChannels[nChan] != nChan)
+                    {
+                        msgbox create it first
+                        return
+                    }
+                    sci[1].setReadOnly(false)
+
+                    sci[1].GetText(sci[1].GetLength()+1, sci1Text)  ; Copy chatlog to display when switching back
+                    channelChat[currentChan] := sci1Text
+                    sci[1].ClearAll()
+
+                    sci[1].AddText(strLen(str:=channelChat[nChan]), str), sci[1].GotoPos(sci[1].GetLength())
+                    sci[1].setReadOnly(true)
+                    currentChan := nChan
+                    Gui, Main: Default
+                    lV_Delete()
+                    nickList := channelNicks[nChan]
+                    Loop, Parse, nickList, %A_Space%, %A_Space%
+                        LV_Add("" ,"", A_LoopField)  ; The username
+                    for k, v in occupiedChannels
+                    {
+                        if (v == currentChan)
+                            v := "[" . v . "]"
+                        chanList .= v . " "
+                    }
+
+                    GuiControl, Main:, GuiMessage
+                    SB_SetText(chanList, 3)
+                    chanList := ""
+                    return
+                }
+                else
+                    WS_Send(client, "COMD||" . GuiMessage)
+            }
             else
-                WS_Send(client, "MESG||" . EdNick . "||" . GuiMessage)
+            {
+                WS_Send(client, "MESG||"           ; MESG||Nick||#Room||Message
+                              . EdNick . "||"
+                              . currentChan . "||"
+                              . GuiMessage)
+            }
             GuiControl, Main:, GuiMessage
         }
         else if (type = "server")
         {
-            if (m1)
+            if (arg1)  ; If the message is preppended with a /COMMAND
             {
                 return
             }
-            for key, value in NewConnection
-                if (NewConnection[key] != 000)
-                    WS_Send(NewConnection[key], "MESG||" . EdNick . "||" . GuiMessage)
+
+            for key, value in socketFromNick
+                WS_Send(socketFromNick[key], "MESG||" . EdNick . "||Global||" . GuiMessage)
             sci[1].SetReadOnly(false)
             sci[1].AddText(strLen(str:=EdNick ": " GuiMessage "`n"), str), sci[1].GotoPos(sci[1].GetLength())
             sci[1].SetReadOnly(true)
@@ -161,11 +215,11 @@ CreateGui(){
 
     SendCode:
         sci[2].GetText(sci[2].GetLength()+1, GuiCode)
-        if (type = "client")   
+        if (type = "client")
             WS_Send(client, "NWCD||" . GuiCode)
         else if (type "server")
         {
-            userCodes[serverIP] := GuiCode
+            userCodes[serverSocket] := GuiCode
             Gui, Code: Default
 
             LV_ModifyCol(1)
@@ -175,9 +229,9 @@ CreateGui(){
                 LV_ModifyCol(1), firstVisit++
             }
 
-            for key, value in NewConnection
-                if (NewConnection[key] != 000)
-                    WS_Send(NewConnection[key], "NWCD||" . EdNick)
+            for key, value in socketFromNick
+                if (socketFromNick[key] != 000)
+                    WS_Send(socketFromNick[key], "NWCD||" . EdNick)
         }
     return
 
@@ -347,7 +401,7 @@ setup_Scintilla(sci, localNick=""){
         localsameasglobal
     )
     infoMessages = Notice
-    
+
     ;{ sci[1] Configuration
     sci[1].SetWrapMode("SC_WRAP_WORD"), sci[1].SetMarginWidthN(1, 0), sci[1].SetReadOnly(true), sci[1].SetLexer(6)
     sci[1].SetCaretWidth(0), sci[1].StyleSetBold("STYLE_DEFAULT", true), sci[1].StyleClearAll()
@@ -425,15 +479,15 @@ findMatch(searchFor){
             continue
         firstLtrMatch := SubStr(searchFor, 1, 1)     ; Set the first letter of match1
         firstLtrRow   := SubStr(rowText  , 1, 1)     ; from Edit control and Row text
-        StringLower, firstLtrMatch, firstLtrMatch    ; to lower case. 
-        StringLower, firstLtrRow  , firstLtrRow      ; 
+        StringLower, firstLtrMatch, firstLtrMatch    ; to lower case.
+        StringLower, firstLtrRow  , firstLtrRow      ;
         if (firstLtrMatch == firstLtrRow)            ;  Then compare them.
         {
             startOfWord := caretPos - (StrLen(searchFor) + 1)
             SendMessage, 0x00B1, startOfWord, caretPos,, AHK_ID%mESmg%  ; EM_SETSEL
             SendMessage, 0x00C2,            , &rowText,, AHK_ID%mESmg%  ; EM_REPLACESEL
-            break                                                      ; > Replaces highlighted
-        }                                                              ; text with LV Item
+            break                                                       ; > Replaces highlighted
+        }                                                               ;   text with LV Item
     }
 
 }
