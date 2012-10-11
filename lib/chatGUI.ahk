@@ -144,17 +144,20 @@ CreateGui(){
         if (!GuiMessage)
             return
         sci[1].GotoPos(sci[1].GetLength())
-        RegexMatch(GuiMessage, "^/(.+?)", arg)
+        pos := RegexMatch(GuiMessage, "^/(#?)(\w+)", arg)
+        nChan := arg2
         if (type = "client")
         {
-            if (arg1)  ; If the message is preppended with a /COMMAND
+            if (pos)  ; If the message is preppended with a /COMMAND
             {
-                chanSwitch := arg1
+                chanSwitch := arg1, nCmd := arg2
+                outputdebug **chatGUI** **if arg1** chanSwitch = %chanSwitch%,
                 if (chanSwitch == "#")  ; This condtion will not Ws_Send to server. Client side channel switch
                 {
+                    outputdebug **chatGUI** **if chanswitch** arg1=%arg1%
                     RegexMatch(GuiMessage, "^/(#.+)", arg)
-                    nChan := arg1
-                    if (occupiedChannels[nChan] != nChan)
+                    nChan := toLower(arg1)
+                    if (toLower(occupiedChannels[nChan]) != nChan)
                     {
                         msgbox create it first
                         return
@@ -169,14 +172,18 @@ CreateGui(){
                     sci[1].setReadOnly(true)
                     currentChan := nChan
                     Gui, Main: Default
-                    lV_Delete()
+                    LV_Delete()
                     nickList := channelNicks[nChan]
                     Loop, Parse, nickList, %A_Space%, %A_Space%
                         LV_Add("" ,"", A_LoopField)  ; The username
                     for k, v in occupiedChannels
                     {
-                        if (v == currentChan)
+                        OutputDebug **chatGUI** **for k v in occupiedChannels** k = %k% v = %v%, currentChan = %currentChan%
+                        if (toLower(v) == toLower(currentChan))
+                        {
+                            OutputDebug **chatGUI** ** if v (%v%) == currentChan (%currentChan%)
                             v := "[" . v . "]"
+                        }
                         chanList .= v . " "
                     }
 
@@ -185,8 +192,44 @@ CreateGui(){
                     chanList := ""
                     return
                 }
+                else if (toLower(arg2) == "leave")
+                {
+                    if (currentChan == "#Main")
+                    {
+                        outputdebug hahah you cannot leave #Main!!!
+                        return
+                    }
+                    WS_Send(client, "COMD||" . GuiMessage . "||" . currentChan)
+                    sci[1].setReadOnly(false)
+                    sci[1].ClearAll()
+                    sci[1].AddText(strLen(str:=channelChat["#Main"]), str), sci[1].GotoPos(sci[1].GetLength())
+                    sci[1].setReadOnly(true)
+                    Gui, Main: Default
+                    LV_Delete()
+                    nickList := channelNicks["#Main"]
+                    Loop, Parse, nickList, %A_Space%, %A_Space%
+                        LV_Add("" ,"", A_LoopField)  ; The username
+
+                    for k, v in occupiedChannels
+                    {
+                        OutputDebug **client** *for kv in occupiedChannels** k, v = %k% %v%
+                        if (v == "#Main")
+                            v := "[" . v . "]"
+                        if (v == currentChan)
+                            continue
+                        chanList .= v . " "
+                    }
+                    Gui, Main: Default
+                    SB_SetText(chanList, 3)
+                    chanList := ""
+                    occupiedChannels.Remove(currentChan)
+                    currentChan := "#Main"
+                }
                 else
+                {
+                    OutputDebug **chatGUI** **else**  type = %type%
                     WS_Send(client, "COMD||" . GuiMessage)
+                }
             }
             else
             {
@@ -459,13 +502,12 @@ setup_Scintilla(sci, localNick=""){
 }
 
 nickCheck(n){
-        RegexMatch(n, "^(\d)", m)
-        if (!m1 && n != "")
-            verify := 1
-        else
-            msgbox, A nickname cannot be empty and must begin with a letter.`nPlease try again.
-
-        return verify
+    RegexMatch(n, "^(\d)", m)
+    if (!m1 && n) && (!RegexMatch(n, "\s")) && (StrLen(n) < 15)
+        return 1
+    else
+        msgbox, A nickname cannot be empty, longer than 14 characters, contain spaces and must begin with a letter.`nPlease try again.
+        return 0
 }
 
 findMatch(searchFor){
@@ -494,4 +536,9 @@ findMatch(searchFor){
 
 MakeShort(Long) {
  return Long & 0xffff
+}
+
+toLower(v){
+    StringLower,v, v
+    return v
 }

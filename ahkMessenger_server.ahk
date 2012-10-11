@@ -32,7 +32,9 @@
     channelNicks[nChan] := Object()
 
 ; GUI
+    OutputDebug **Server** **Start CreateGui**
     CreateGui()
+    OutputDebug **Server** **End CreateGui**
 
     if (EdNick != "Server")
     {
@@ -45,6 +47,7 @@
     ; Initialize
     WS_LOGTOCONSOLE := 1
     WS_Startup()
+    OutputDebug **Server** **WS_Startup complete**
 
     ; Port/Socket setup
     server := WS_Socket("TCP", "IPv4")
@@ -63,21 +66,24 @@
 return
 
 WS_OnAccept(socket){
-    global socketFromNick
     WS_Accept(socket, client_ip, client_port)
+    OutputDebug **Server** **WS_OnAccept** socket = %socket%
 }
 
 ; Send to Multiple clients
 WS_OnRead(socket){
     global Log, LogID, sci, userCodes, socketFromNick, nickFromSocket, EdNick, allNicksInChan, allNicksInChanMaxIndex, chansNickIsIn, chan
 
+
     sci[1].GotoPos(sci[1].GetLength())
     WS_Recv(socket, ClientMessage)
     RegexMatch(ClientMessage, "^(\w+)\|\|\/?(\w+)\|?\|?(#?\w+)?\|?\|?(.+)?", arg)  ; Match the socketFromNick
     msgType :=  arg1, nNick := arg2, nChan := arg3, nMsg := arg4
+    OutputDebug **Server** **WS_OnRead** socket = %socket%, msgType = %msgType%
     ;msgbox msgType = %msgType%`nnNick = %nNick%`nnChan = %nChan%`nnMsg = %nMsg%
     if      (msgType == "USRN")
     {
+        OutputDebug **Server** **if USRN**
         socketFromNick[nNick] := socket, nickFromSocket[socket] := nNick
         WS_Send(socket, "TITL||" . socket . "||")
 
@@ -86,10 +92,14 @@ WS_OnRead(socket){
     }
     else if (msgType == "MESG")
     {
+        OutputDebug **Server** **if MESG**
         for key, value in socketFromNick                                                     ; Send messages to all
+        {
+            OutputDebug **Server** **WS_Send** MESG||%nNick%||%nChan%||%nMsg%
             if (allNicksInChan[nChan, nickFromSocket[value]] == nickFromSocket[value])       ; users according to
                 WS_Send(socketFromNick[key], "MESG||" . nNick . "||" . nChan . "||" . nMsg)  ; the channels they are
                                                                                              ; associated with
+        }
         ;=============== For Server GUI =================
         sci[1].setReadOnly(false)
         sci[1].AddText(strLen(str:= nNick . "(@" . nChan . "): " . nMsg "`n"), str), sci[1].ScrollCaret()
@@ -100,11 +110,13 @@ WS_OnRead(socket){
     }
     else if (msgType == "RQST")
     {
+        OutputDebug **Server** **if RQST**
         skt := socketFromNick[nNick]
         WS_Send(socket, "CODE||" . nNick . "||" . userCodes[skt])
     }
     else if (msgType == "NWCD")
     {
+        OutputDebug **Server** **if NWCD**
         nNick := nickFromSocket[socket]
         nCode := arg2
         userCodes[socket] := nCode
@@ -134,17 +146,7 @@ WS_OnRead(socket){
     }
     else if (msgType == "NKCH")
     {
-        /*
-            When a client changes their nick the
-            server must send updates to all the
-            channels the client occupies
-
-            First start with storing the oldnick.
-            Then remove the old array links using
-            oldNick and skt
-
-            Use nNick to to create new array elements.
-        */
+        OutputDebug **Server** **if NKCH**
         oldNick := nickFromSocket[socket]
         nickFromSocket.Remove(socket, ""), socketFromNick.Remove(oldnick)
         nNick := arg2
@@ -201,11 +203,13 @@ WS_OnRead(socket){
     }
     else if (msgType == "COMD")
     {
-        RegexMatch(ClientMessage, "^COMD\|\|\/(\w+) (.+)", arg)          ; args from first Regex not valid here (Line 74)
-        cmd := arg1, nChan := arg2, nNick := nickFromSocket[socket]
-        if      (cmd == "JOIN")
+        RegexMatch(ClientMessage, "^COMD\|\|\/(\w+) ?\|?\|?(.+)?", arg)          ; args from first Regex not valid here (Line 74)
+        OutputDebug **Server** **if COMD** arg1=%arg1%, arg2=%arg2%
+        cmd := toLower(arg1), nChan := arg2, nNick := nickFromSocket[socket]
+        if      (cmd == "join")
         {
-            if (chansNickIsIn[nNick, nChan])  ; If the client tries to join a channel they are alread in
+            OutputDebug **Server** **if join**
+            if (chansNickIsIn[nNick, nChan])  ; If the client tries to join a channel they are already in
             {
                 WS_Send(socket, "COMD||Notice: You are already in '" . nChan "'||")
                 return
@@ -229,15 +233,44 @@ WS_OnRead(socket){
                 WS_Send(socketFromNick[nNick], "CHAN||ENTER||" . nChan . "||" . nickList . "||" . nickFromSocket[socket])
             }
         }
-        else if (cmd == "LEAVE")
-            WS_Send(socket, "COMD||Notice from Server: You want to leave some channel?")
-        else if (cmd == "MOTD")
+        else if (toLower(cmd) == "leave")
+        {
+            nNick := nickFromSocket[socket]
+            OutputDebug **Server** **else if leave**
+            allNicksInChanMaxIndex[nChan]--
+            for k, v in allNicksInChan[nChan]
+                nickList .= v (A_Index != allNicksInChanMaxIndex[nChan] ? " " : "")
+            if (allNicksInChanMaxIndex[nChan])  ; Remove client from arrays if other clients still occupy channel
+            {
+                for k, v in allNicksInChan[nChan]
+                    WS_Send(socketFromNick[v], "MESG||" . nNick)
+                chansNickIsIn[nNick].Remove(nChan)
+                allNicksInChan[nChan].Remove(nNick)
+            }
+            else  ; Remove channel and client form arrays.
+            {
+                OutputDebug **Server** nChan=%nChan%, nNick=%nNick%
+                allNicksInChan[nChan].Remove(nNick)
+                chansNickIsIn[nNick].Remove(nChan)
+                chan.Remove(nChan)
+            }
+        }
+        else if (cmd == "motd")
+        {
+            OutputDebug **Server** **else if motd**
             WS_Send(socket, "COMD||Notice from Server: You want the Message Of The Day?")
-        else if (cmd == "HELP")
-            WS_Send(socket, "COMD||Notice from Server: Commands:`n  JOIN`n  LEAVE`n  MOTD`n  HELP")
+        }
+        else if (cmd == "help")
+        {
+            OutputDebug **Server** **else if help**
+            WS_Send(socket, "COMD||Notice from Server: Commands:`n  JOIN`nSyntax:/JOIN #ChannelName")
+        }
         else
+        {
+            OutputDebug **Server** **else**
             WS_Send(socket, "COMD||Notice from Server: Acceptable commands are:`n  JOIN`n  LEAVE`n  MOTD`n  HELP")
-        ;else if (cmd == "EXIT")
+        }
+        ;else if (cmd == "exit")
     }
 }
 
@@ -265,13 +298,17 @@ WS_OnCLose(socket){
     nickFromSocket.Remove(socket, "")
     allNicksInChanMaxIndex--
 }
+
 ;==== For DEBUGGING ONLY 
 ~*Esc::
 ;==== End DEBUG
 MainGuiClose:
 ExitRoutine:
     for k, v in socketFromNick
-        WS_CloseSocket(v)
+    {
+        OutputDebug k=%k%, v=%v%
+        WS_Send(v, "MESG||Server||Server has shutting down. Goodbye!")
+    }
     WS_CloseSocket(server)
     WS_Shutdown()
 ExitApp

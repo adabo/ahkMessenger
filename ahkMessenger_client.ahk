@@ -41,7 +41,7 @@ OnExit, ExitRoutine
 return
 
 WS_OnRead(socket){
-	Global sci, CodeID, EdNick, nickList, currentChan, occupiedChannels, channelNicks, channelChat
+	Global sci, CodeID, EdNick, nNickList, currentChan, occupiedChannels, channelNicks, channelChat
 	static firstVist
 
 
@@ -49,6 +49,7 @@ WS_OnRead(socket){
 	WS_Recv(socket, ServerMessage)
     RegexMatch(ServerMessage, "^(\w+)\|\|(\w+)\|?\|?(#?\w+ ?\w+)?\|?\|?(.+)?", arg)
     RegexMatch(ServerMessage, "(TITL|CODE|MESG|NWCD|DISC|NKCH|COMD|CHAN)\|\|(ENTER|LEAVE|MOTD|HELP|EXIT|[\w\d:'# ]+)\|\|([#\w\d\s]+)?\|?\|?([\w\d\s]+)?\|?\|?([#\w\d\s]+)?\|?\|?", mch)
+	OutputDebug **client** **WS_OnRead** mch1,2,3,4,5 = %mch1% %mch2% %mch3% %mch4% %mch5%
     ;tooltip %mch1% %mch2% %mch3% %mch4% %mch5%
     /*
     args =
@@ -62,6 +63,7 @@ WS_OnRead(socket){
     msgType :=  arg1
 	if      (msgType == "TITL")
     {
+    	OutputDebug **client** **TITLE** arg2 = %arg2%
     	Gui, Main: Default
     	SB_SetText("Socket: " . arg2, 1)
     }
@@ -69,6 +71,7 @@ WS_OnRead(socket){
 	{
 		Gui, Code: Default
 		nNick := arg2, nCode := arg3
+		OutputDebug **client** **CODE** nNick, nCode = %nNick%, %nCode%
 		;============== check if name exist in listview ===================;
 		while (nNick != rowText)
 		{
@@ -84,9 +87,23 @@ WS_OnRead(socket){
 	}
 	else if (msgType == "MESG")
 	{
-		nNick := arg2, nChan := arg3, nMsg  := arg4
-		if (currentChan == occupiedChannels[nChan])  ; Checks if the message came from the focused chatroom
+		nCmd := nNick := arg2, nChan := arg3, nMsg  := arg4
+		OutputDebug **client** **MESG** nNick, nChan, nMsg = %nNick% %nChan% %nMsg%
+		OutputDebug **client** **else if msgtype == MESG** nNick = %nNick%, nChan = %nChan%, nMsg = %nMsg%
+		if (nCmd == "leave")
 		{
+			OutputDebug **Client** **if nCmd == leave**
+		}
+		if (nNick == "Server")
+		{
+			OutputDebug **client** **if currentChan == occupiedChannels[nChan]]**
+	    	sci[1].setReadOnly(false)
+	        sci[1].AddText(strLen(str:=nNick . ": " . nMsg "`n"), str), sci[1].GotoPos(sci[1].GetLength())
+	        sci[1].setReadOnly(true)
+		}
+		else if (toLower(currentChan) == toLower(occupiedChannels[nChan]))  ; Checks if the message came from the focused chatroom
+		{
+			OutputDebug **client** **if currentChan == occupiedChannels[nChan]]**
 	    	sci[1].setReadOnly(false)
 	        sci[1].AddText(strLen(str:=nNick . ": " . nMsg "`n"), str), sci[1].GotoPos(sci[1].GetLength())
 	        sci[1].setReadOnly(true)
@@ -107,6 +124,7 @@ WS_OnRead(socket){
 	}
 	else if (msgType == "NWCD")
 	{
+		OutputDebug **client** **NWCD**
 		nNick := arg2
     	Gui, Code: Default
 		if (nNick == EdNick) ;Do not add icon to Own Nickname
@@ -147,18 +165,24 @@ WS_OnRead(socket){
 	{
 		Gui, Main: Default
 		nNick := arg2
+		OutputDebug **client** **DISC** arg2 = %arg2%
+    	sci[1].setReadOnly(false)
+        sci[1].AddText(strLen(str:="Notice: '" . nNick . "' has diconnected.`n"), str), sci[1].GotoPos(sci[1].GetLength())
+        sci[1].setReadOnly(true)
 		loop % LV_GetCount()
 		{
 			LV_GetText(nm, A_Index, 2)
 			if (nm == nNick)
 			{
+				OutputDebug **client** **if nm == nNick**
 				lV_Delete(A_Index)
 			}
 		}
 	}
     else if (msgType == "NKCH")
     {
-    	nOldNick := mch2, nNick := mch3, nickList := mch4, nChan := mch5
+    	nOldNick := mch2, nNick := mch3, nNickList := mch4, nChan := mch5
+    	OutputDebug **client** **NKCH** nOldNick, nNick, nNickList, nChan = %nOldNick% %nNick% %nNickList% %nChan%
 
         /*
         	When a remote client changes their nick, the server
@@ -167,24 +191,28 @@ WS_OnRead(socket){
         */
     	if (nChan == currentChan)
     	{
+    		OutputDebug **client** **if nChan == currentChan** %nChan% == %currentChan%
 	       	Gui, Main: Default
 	    	lV_Delete()
-	    	Loop, Parse, nickList, %A_Space%
+	    	Loop, Parse, nNickList, %A_Space%
 				LV_Add("" ,"", A_LoopField) ;The username
-	        sci[1].SetKeywords(1,nickList)
+			channelNicks[nChan] := nNickList
+	        sci[1].SetKeywords(1,nNickList)
 	        sci[1].setReadOnly(false)
 	        sci[1].AddText(strLen(str:="Notice: " nOldNick . " has changed their nick to: " . nNick . "`n"), str), sci[1].GotoPos(sci[1].GetLength())
 	        sci[1].setReadOnly(true)
     	}
     	else
     	{
+    		OutputDebug **client** **else if nchan != currentChan**
         	channelChat[nChan] .= "Notice: " nOldNick . " has changed their nick to: " . nNick . "`n"
-        	channelNicks[nChan] := nickList
+        	channelNicks[nChan] := nNickList
     	}
     }
     else if (msgType == "COMD")
 	{
 		nMsg := mch2
+		OutputDebug **client** **COMD** nMsg = %nMsg%
     	sci[1].setReadOnly(false)
     	sci[1].AddText(strLen(str:=nMsg "`n"), str), sci[1].GotoPos(sci[1].GetLength())
         sci[1].setReadOnly(true)
@@ -192,8 +220,10 @@ WS_OnRead(socket){
     else if (msgType == "CHAN")
     {
     	nCmd := mch2, nChan := mch3, nNickList := mch4, nNick := mch5
+    	OutputDebug **client** **CHAN** nCmd, nChan, nNickList, nNick = %nCmd% %nChan% %nNickList% %nNick%
     	if (nCmd == "ENTER")
     	{
+    		OutputDebug **client** **if nChan == ENTER**
     		channelNicks[nChan] := nNickList
     		if (!occupiedChannels[nChan])                              ;
     		{                                                          ; Determines if the "ENTER" message was from
@@ -205,6 +235,7 @@ WS_OnRead(socket){
 				occupiedChannels[nChan] := nChan, currentChan := arg3  ;
 		        for k, v in occupiedChannels                           ;
 		        {
+		        	OutputDebug **client** *for kv in occupiedChannels** k, v = %k% %v%
 		        	if (v == currentChan)
 		        		v := "[" . v . "]"
 		        	chanList .= v . " "
@@ -215,6 +246,7 @@ WS_OnRead(socket){
 
 			if     (currentChan == nChan)  ; Use condition so the message log only updates the channel that is focused.
 			{                              ; This condition is used to update the listview when a new client Joins the channel
+				OutputDebug **client** **if currentChan == nChan** currentChan, nChan = %currentChan%, %nChan%
 		    	sci[1].setReadOnly(false)
 		        sci[1].AddText(strLen(str:="Notice: " . nNick . " has entered " . nChan . "`n"), str), sci[1].GotoPos(sci[1].GetLength())
 		        sci[1].setReadOnly(true)
