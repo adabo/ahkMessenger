@@ -1,0 +1,669 @@
+/*
+	ahkMessenger v0.2.2
+	author: adabo
+	email: abel4@msn.com
+*/
+
+;//Directives
+	OnExit, ExitRoutine
+	#singleinstance Off
+
+;//Includes
+	#include lib\attach.ahk
+	#include lib\keywords.ahk
+	#include lib\ws.ahk
+	#include wrapper
+
+;//Variables
+	;// WS_LOGTOCONSOLE := 1
+	test := 0
+	
+;//Super Globals
+	global mainUser
+	global cd,sc,input
+	global client
+/*
+	global ALLCHANLOGS := []
+	global CHANLIST := []
+	global chanlogs := []
+	global chansNicks := []
+	global CLIENTCHANS := []
+	global CLIENTNICK
+	global CODE        := []
+	global CURRENTCHAN
+	global EChLog 
+	global MsgInput
+	global TabSwitch
+*/
+
+;//Program start
+	createGUI()  ;
+	initialize()  ;
+return
+
+createGUI(){
+	static
+	Gui, DBG:Font, s8, Verdana
+	Gui, DBG:Add, Edit, w500 h700 +ReadOnly
+
+	;//Setup Main chat window
+	Gui, Main:Default
+	Gui, Main: +HWNDMainWinHwn +Resize
+	Gui, Main:Add, ListView, x570 y12  w90  h328 HwndLNkL +ReadOnly -Hdr, UserList
+	Gui, Main:Add, Groupbox, x10  y350 w650 h90  HwndGGbx  , Groupbox
+	Gui, Main:Add, Button,   x580 y360 w70  h30  HwndBCon ginitialize,Connect
+	Gui, Main:Add, Button,   x580 y390 w70  h30  HwndBCod gCodeWin ,Code
+	;// Gui, Main:Add, Button,   w0   h0             HwndBSnd Default gSendMessage
+	Gui, Main:Add, Tab,      x10  y10  w550 h330 HwndTTSw -Wrap vTabSwitch gchanTabSwitcher
+	Gui, Main:Font, s8, Courier New
+	Gui, Main:Add, StatusBar, gstatusBarClick
+	SB_SetParts(100,80,80)
+	;//SB_SetIcon("Shell32.dll",3,1)
+	sc := new sci(MainWinHwn,"sc",20,50,520,270)
+	input:=new sci(MainWinHwn,"input",20,370,550,50)
+	
+	;//Setup Code share window
+	Gui, Code:+Resize +HwndCodeWinHWn
+	Gui, Code:Add, Button, x360 y510 w70 h30 HwndBSub gsendCode, Submit
+	Gui, Code:Add, Button, x10 y510 w70 h30 HwndBBGCol gForegroundColorChanger, Foreground
+	Gui, Code:Add, Button, x90 y510 w70 h30 HwndBBFCol gBackgroundColorChanger, Background
+	Gui, Code:Add,Treeview,x540 y10 w110 h490 HwndTVCd grequestCode
+	cd := new sci(CodeWinHWn,"cd",5,5,500,500)
+
+	setupHotkeys(MainWinHwn,CodeWinHWn)  ;
+	setupSciControls()
+	;// db("creatgui")
+
+	attachControls(input.hwnd, "w y r"
+		             ,sc.hwnd, "w h r"
+		             ,cd.hwnd, "w h r"
+		             ,BSub,"x y"
+		             ,LNkL,"x h"
+		             ,GGbx,"w y"
+		             ,BCon,"x y "
+		             ,BCod,"x y "
+		             ,BBGCol,"y"
+		             ,BBFCol,"y"
+		             ,TTSw,"w h"
+		             ,TVCd,"x h")
+	Gui, Main:Show
+}
+
+attachControls(hwn*){
+	hwnObject := []
+	for i,coord in hwn
+	{
+		if !(mod(i, 2))
+		{
+			hwnObject[i, hwId] := coord
+			for h,c in hwnObject[i]
+				Attach(h, c)
+		}
+		hwId := coord
+	}
+}
+
+setupSciControls(){
+	input.2268(1),input.2400(1)
+	input.2268(1),input.4006(0,"asm"),input.2051(8,0xff0000)
+	input.2242(1,0)
+
+	sc.2268(1),sc.4006(0,"asm"),sc.2069(0xffffff)
+	sc.2051(8,0xff0000),sc.2051(9,0x0000ff)
+	OnMessage(0x4E, "Notify")
+
+	cd.2056(32,"Courier New")
+	cd.2055(32,12),cd.2050,cd.4006(0,"asm")
+	setSciColors()
+}
+
+setupHotkeys(MainWinHwn,CodeWinHWn){
+	Hotkey, IfWinActive, ahk_id%MainWinHWn% MainWinHwn
+	Hotkey, ^Tab, hotkeySwitchChans, On
+	Hotkey, F6, CodeWin, On
+	Hotkey, F5, initialize, On
+	Hotkey, IfWinActive, ahk_id%CodeWinHWn%
+	Hotkey, F6, CodeWin, On
+	Hotkey, ^Enter, sendCode, On
+}
+
+initialize(){
+	initialize:
+	;// WS_LOGTOCONSOLE := 1
+	WS_Startup()
+	client := WS_Socket("TCP", "IPv4")
+	WS_Connect(client, "99.23.4.199", "12345")
+	;// mb("NOT HERE")
+	WS_HandleEvents(client, "READ")
+	sleep 20
+	WS_Send(client, "NWCN||")
+	sleep 100
+	return
+}
+
+WS_OnRead(socket){
+	static dbugWin
+	static i:=1
+	WS_Recv(socket, ServerMessage)
+
+	;//=====================
+	;//For debugging
+	Gui,Main:Default
+	SB_SetText(ServerMessage , 4)
+	dbugWin .= ServerMessage . "`n"
+	GuiControl, DBG:, Edit1, %dbugWin%
+	;//=====================
+
+    RegexReplace(ServerMessage, "¥", "", cnt)  ;// Find terminator code "¥"
+    loop, %cnt%
+        search.="(.+?)¥"
+    RegexMatch(ServerMessage, search, cmcnt)
+    search := ""
+
+    ;// Loop through client messages in case there where multiples.
+	loop % !cnt ? 1 : cnt
+	{
+		mb("loop")
+		;// db(ServerMessage)
+		ServerMessage := !(cmcnt%a_index%) ? ClientMessage : cmcnt%a_index%
+		db(ServerMessage "|")
+		RegexReplace(ServerMessage, "\|\|", "", cnt)
+		loop, %cnt%
+			search.="(.*)\|\|"
+		search .= "(.*)"
+		RegexMatch(ServerMessage, "^" . search, arg)
+		msgType := arg1
+		;// db("after",arg1,arg2,arg3,arg4,arg5)
+		if      (msgType == "MESG")
+			protMESG(arg2,arg3,arg4)
+		else if (msgType == "JOIN")
+			protJOIN(arg2,arg3,arg4)
+			/*
+				arg2 = #Channel
+				arg3 = Nickname
+				arg4 = Nick List
+			*/
+		else if (msgType == "NKCH")
+			protNKCH(arg2,arg3,arg4,arg5)
+			/*
+				arg2 = Oldnick
+				arg3 = NewNick
+				arg4 = Channel
+				arg5 = List of nicks
+			*/
+		else if (msgType == "USRN")
+			statusBarSetText(arg2, 1),protUSRN(arg2)
+			/*
+				arg2 = Nickname
+			*/
+		else if (msgType == "NWCD")
+			protNWCD(arg2,arg3)
+			/*
+				arg2 = nickname
+				arg3 = version	
+			*/
+		else if (msgType == "RQCD")
+		protRQCD(arg3,arg4)
+		/*
+			arg2 = version
+			arg3 = nick
+			arg4 = code
+		*/
+	}
+}
+
+backgroundColorChanger(){
+    BackgroundColorChanger:
+	s := sci.hk().cd
+	col := Dlg_Color(s.2482(32))
+	IniWrite, %col%, color_settings.ini, Background, 32
+	setSciColors()
+    return
+}
+
+foregroundColorChanger(){
+	ForegroundColorChanger:
+	s := sci.hk().cd
+	style := s.2010(s.2008)
+	col := Dlg_Color(s.2481(style))
+	IniWrite, %col%, color_settings.ini, Fonts, %style%
+	s.2051(style, col)
+	;//mb(style, col)
+	setSciColors()
+    return
+}
+
+statusBarClick(){
+	statusBarClick:
+	Gui,DBG:Default
+	if (A_EventInfo == 4)
+		Gui, DBG:Show
+	return
+}
+
+statusBarSetText(t, p){
+	Gui, Main:Default
+	SB_SetText(t, p)
+}
+
+protMESG(chn,nck,msg){
+		setChatLog(getTime() " " nck ": " msg, chn)
+}
+
+protJOIN(chn,nck,lst){
+	;//static CHANLIST := [], chanLogs := [], chansNicks := []
+
+	lst := trim(lst,"`n")
+	input.4005(3,lst)
+	chansNicks[chn,nck] := lst
+	;// for a,b in chansNicks
+	;// 	mb(a,b)
+	stringlower,lst,lst
+	input.4005(3,lst),sci.hk().sc.4005(3,lst)
+	;// mb(CLIENTNICK)
+	;// db(CLIENTNICK,chn, nck, lst)
+	if (CLIENTNICK == nck)
+	{
+		RegExMatch(lst,"i)(" nck ")",name),
+		rest:=regexreplace(lst,"i)(" name ")"),
+		rest:=Trim(rest,"`n")
+		StringLower,rest,rest
+		StringLower,name,name
+		sci.hk().sc.4005(2,name),
+		sci.hk().sc.4005(3,rest)
+		CURRENTCHAN := chn
+		newchan := SubStr(chn, 2)
+		if !(CLIENTCHANS[CURRENTCHAN])
+			chanTabSwitcher(CURRENTCHAN)
+		CHANLIST[CURRENTCHAN] := CURRENTCHAN
+		CLIENTCHANS := CHANLIST
+		channels := ""
+		for a, b in CLIENTCHANS
+			channels .= a "|"
+		GuiControl, Main:, SysTabControl321, |%channels%|
+	}
+	note := "Notice: '" . nck . "' joins the channel"
+	var({chansNicks:chansNicks})  ;//What is this?
+	if (chn != CURRENTCHAN)
+		return
+	Gui, Main: Default
+	LV_Delete()
+	thisChansNicks := chansNicks[chn,CLIENTNICK]
+	Loop, Parse, thisChansNicks, %A_Space%
+		LV_Add("", A_LoopField)
+	setChatLog(getTime() " " note, chn)
+}
+
+protNKCH(onk,nnk,chn,lst){
+	Gui, Main:Default
+	;// mb(onk,nnk,chn,lst)
+	;// db(onk,nnk,chn,lst)
+	;// mb(onk,nnk,chn,lst)
+	stringlower,lst,lst  ;//Extremely important. Don't forget.
+	chansNicks[chn] := lst
+
+	user.changeNick(nnk)
+	mb(mainUser.nick)
+
+	if (CLIENTNICK == onk){
+		;// mb(onk,nnk)
+
+		CLIENTNICK := nnk
+		SB_SetText(nnk,1)
+	}
+	{
+		RegExMatch(lst,"i)(" CLIENTNICK ")",name),
+		rest:=regexreplace(lst,"i)(" name ")"),
+		rest:=Trim(rest,"`n")
+		StringLower,rest,rest
+		StringLower,name,name
+		sci.hk().sc.4005(2,name),
+		sci.hk().sc.4005(3,rest)
+	}
+	note := "Notice: '" . onk . "' has changed their name to '" . nnk . "'"
+	;// mb(onk,nnk,chn,lst)
+	;// onk := chn  ;Leave this for later use
+	;// for a,b in chansNicks
+	;// 	mb(a,b,CLIENTNICK,lst)
+	if (chn != CURRENTCHAN)
+		return
+	Gui, Main: Default
+	LV_Delete()
+	thisChansNicks := chansNicks[chn]
+	Loop, Parse, thisChansNicks, %A_Space%
+		LV_Add("", A_LoopField)
+	setChatLog(getTime() " " note, chn)
+}
+
+protUSRN(nck){
+	;// CLIENTNICK := trim(nck,"¥")
+	mainUser := new user(nck)
+}
+
+protNWCD(nck,ver){
+	if (nck == CLIENTNICK)
+		return
+	Gui, Code:Default
+	id := 0
+	loop % TV_GetCount()  ;//Find if the nickname exists in treeview
+	{
+		id := TV_GetNext(id,  "Full")
+		TV_GetText(itemtext, id)
+		if (itemtext == nck)
+			break
+		itemtext := ""
+	}
+	if (itemtext)       ;//If a nick was found, add a child version
+		TV_Add(ver, id)
+	else				;//Else add the nick with a parent and first child version
+	{
+		id := TV_Add(nck)
+		TV_Add(ver,id)
+	}
+}
+
+protRQCD(nck,cod){
+	Gui, Code:Default
+	id := 0
+	loop % TV_GetCount()  ;//Find if the nickname exists in treeview
+	{
+		id := TV_GetNext(id,  "Full")
+		TV_GetText(itemtext, id)
+		if (itemtext == nck)
+			break
+		itemtext := ""
+	}
+	CODE[id] := cod
+	cd.2181(0,cod)
+	cd.2400		
+}
+
+sendCode(){
+	sendCode:
+	static i := 1
+	static p1
+
+	Gui, Code:Default
+	EdCode := cd.gettext()
+	WS_Send(client, "NWCD||" i "||" EdCode)
+	if (i < 2)
+		p1 := TV_Add(CLIENTNICK)
+	c := TV_Add(i,p1)
+	CODE[c] := EdCode
+	i++
+	return
+}
+
+requestCode(){
+	requestCode:
+	Gui, Code:Default
+	TV_GetText(item, id := TV_GetSelection()), TV_GetText(p, TV_GetParent(id))
+	if (a_guievent != "DoubleClick" || item + 0 == "")
+		return
+	else if (c := CODE[id])
+	{
+		cd.2181(0,c)
+		cd.2400
+	}
+	else
+		WS_Send(client, "RQCD||" p "||" item)
+	return
+}
+
+hotkeySwitchChans(){
+	hotkeySwitchChans:
+	Gui, Main: Submit, NoHide
+	for a, b in CLIENTCHANS
+	{
+		if (a = TabSwitch)
+			current := A_Index
+		max := A_Index
+	}
+	if (current == max)
+		current := 1
+	else
+		current++
+	GuiControl, Main: Choose, SysTabControl321, % current
+	Gui, Main: Submit, NoHide
+	chanTabSwitcher(TabSwitch)
+	return
+}
+
+setChatLog(msg,chn){
+	chanLogs[chn, A_Now "." A_MSec] := msg
+	ALLCHANLOGS := chanLogs
+	CURRENTCHAN := var("CURRENTCHAN")
+	for tmStamp, msgLine in ALLCHANLOGS[CURRENTCHAN]
+		chatBuilder .= msgLine . "`r`n"
+	if (chn != var("CURRENTCHAN"))
+		return
+	sc:=sci.hk().sc
+	sci.hk().sc.2171(0)
+	sci.hk().sc.2181(0,chatbuilder)
+	sci.hk().sc.2171(1)
+	sc.2160(sc.2006,sc.2006)
+}
+
+sendMessage(ctl){
+	if (ctl=input.hwnd)
+	{
+		MsgInput:=trim(input.gettext(),"`n")
+		;// If message is a command
+		if (SubStr(MsgInput, 1, 1) == "/")
+		{
+			;// Channel switcher!! :P
+			if (SubStr(MsgInput,2,1) == "#")
+			{
+				ch := SubStr(MsgInput, 2)
+				if (CLIENTCHANS[ch])
+					chanTabSwitcher(ch)
+				input.2380(1)
+				return
+			}
+			WS_Send(client, "COMD||" . trim(MsgInput,"`r`n") . "¿")
+		}
+		;// or normal message
+		else
+			WS_Send(client, "MESG||" . var("CURRENTCHAN") . "||" . trim(MsgInput,"`r`n") . "¿")
+		input.2181(0,"")
+		input.2380(1)
+	}
+}
+
+chanTabSwitcher(h){
+	chanTabSwitcher:
+	Gui,Main:Submit,NoHide
+	h := !TabSwitch ? h : TabSwitch  ;// If the tab was clicked by mouse use
+	var({CURRENTCHAN:h})             ;// TabSwitch var from Gui Tab
+	input.2380(1)
+	chatBuilder := ""
+	for tmStamp, msgLine in ALLCHANLOGS[h]
+		chatBuilder .= msgLine . "`r`n"
+	sc:=sci.hk().sc
+	sci.hk().sc.2171(0)
+	sci.hk().sc.2181(0,chatbuilder),sci.hk().sc.2160(sci.hk().sc.2006,sci.hk().sc.2006)
+	sc.2160(sc.2006,sc.2006)
+	sci.hk().sc.2171(1)
+
+	GuiControl, Main: ChooseString, SysTabControl321, %h%
+	nicklist := var("chansNicks")[h]
+	mb("Here")
+	for a,b in nicklist
+		mb(a,b,h)
+	Gui, Main: Default
+	LV_Delete()
+	Loop, Parse, nicklist, %A_Space%
+		LV_Add("", A_LoopField)
+	return
+}
+
+Dlg_Color(Color){
+	VarSetCapacity(CHOOSECOLOR,0x24,0),VarSetCapacity(CUSTOM,64,0)
+	,NumPut(0x24,CHOOSECOLOR,0),NumPut(hGui,CHOOSECOLOR,4)
+	,NumPut(color,CHOOSECOLOR,12),NumPut(&CUSTOM,CHOOSECOLOR,16)
+	,NumPut(0x00000103,CHOOSECOLOR,20)
+	nRC:=DllCall("comdlg32\ChooseColorA", str,CHOOSECOLOR)
+	if (errorlevel <> 0) || (nRC = 0)
+	Exit
+	setformat,integer,H
+	clr := NumGet(CHOOSECOLOR,12)
+	setformat,integer,D
+	return %clr%
+}
+
+setSciColors(){
+    ;// db("setSciColors")
+	/*
+	    cd.2051(0, 0xFF0000)   // Spaces? #?
+	    cd.2051(1, 0x00FF00)   // Comments
+	    cd.2051(2, 0x0000ff)   // Numbers
+	    cd.2051(3, 0xFF00FF)   // Strings
+	    cd.2051(4, 0x55aa55)   // Punctuation
+	    cd.2051(5, 0xaaaaaa)   // Plain text
+	    cd.2051(6, 0xaaaaaa)   // Control Flow
+	    cd.2051(7, 0xffaa00)   // Specialparams
+	    cd.2051(8, 0xffaa00)   // Functions
+	    cd.2051(9, 0xffaa00)   // Directives
+	    cd.2051(10, 0xffaa00)  // Keybuttons
+	    cd.2051(11, 0xffaa00)  // Multiline Comments
+	    cd.2051(14, 0xffaa00)  // Variables
+	    cd.2051(15, 0xffaa00)  // Escape Sequence
+	*/
+	static controlflow, commands, functions, directives, keysbuttons, variables, specialparams
+
+	;//SetKeywords
+	for a,b in keywords()
+		%a%:=b
+	cd.4005(0,controlflow)
+    cd.4005(1,commands)
+    cd.4005(2,functions)
+    cd.4005(3,directives)
+    cd.4005(4,keysbuttons)
+    cd.4005(5,variables)
+    cd.4005(6,specialparams)
+    cd.4005(7,userdefined)
+    ;//Get colors from .ini file
+	cd:=sci.hk().cd
+	IniRead, bc, color_settings.ini, Background, 32, 0x343A39
+	cd.2052(32,bc) ; Set background to black (32 is default)
+	cd.2050              ; set fore/back function for text
+
+	;//Set default colors
+	for a,b in {0:"61dbde",1:"0x337739",2:"0x1E6CE1",3:"0xE362B6",4:"0x55aa55",5:"0xA7A7A7",6:"0xaaaaaa",7:"0xffaa00",8:"0x3EF9EF",9:"0xffaa00",10:"0xffaa00",11:"0xffaa00",14:"0xffaa00",15:"0xffaa00"}
+	{
+		IniRead, fc, color_settings.ini, Fonts, %a%
+		fc := fc!="ERROR"?fc:b
+		cd.2051(a, fc)
+	}
+}
+
+notify(a,b,c,d){
+	Critical
+	global client,	chansNicks
+	if A_Gui not in main,code
+	return
+	control:=NumGet(b+0)
+	if !s:=sci.hk(control)
+	return
+	sciCode:=NumGet(b+8),cp:=s.2008,scpos:=NumGet(b+12)
+	if (sciCode=2008)
+	{
+		if A_Gui = sciCode
+		s:=sci.hk().cd,s.2242(0,strlen(s.2154)*10)
+	}
+	if (sciCode=2001){
+		nicklist:=var("chansNicks")[var("CURRENTCHAN")]
+		StringLower,nicklist,nicklist
+		s:=input
+		command:=s.gettextrange(s.2266(cp,0),s.2267(cp,0))
+		word:=s.gettextrange(s.2266(cp,1),s.2267(cp,1))
+		if (StrLen(word)>1&&s.2102=0){
+			loop,parse,nicklist,%a_space%
+			if RegExMatch(A_LoopField,"Ai)" word)
+			list.=a_loopfield " "
+			sort,list,UD%A_Space%
+			if list
+			s.2100(strlen(word),trim(list))
+		}
+		char:=NumGet(b+16)
+		if char = 47
+		{
+			if s.2102
+				return
+			list=join me nick
+			input.2100(0,list)
+		}
+		if char in 10
+			sendMessage(control)
+	}
+}
+
+getTime(){
+	return "[" A_Hour ":" A_Min "] "
+}
+
+mb(x*){
+	for a,b in x
+	list.=b "`n"
+	MsgBox,% list
+}
+
+tt(x*){
+	for a,b in x
+	list.=b "`n"
+	ToolTip,% list
+}
+
+db(x*){
+	for a,b in x
+	list.=b "|"
+	OutputDebug,% rTrim(list, "|")
+}
+
+var(x=""){
+	static
+	static list:=[]
+	if !IsObject(x)
+	{
+		;// for a,b in list[x]
+		;// 	db(a,b)
+		return list[x]
+	}
+	;//mb("for " x)
+	for a,b in x
+	list[a]:=b
+}
+
+class user {
+
+	__New(userNick){
+		this.Nick:=userNick
+	}
+
+	changeNick(newNick){
+		this.Nick:=newNick
+	}
+
+
+} ;
+
+;//On CodeGui close
+    CodeGuiClose:
+    CodeWin:
+	cd.2400
+	if (x := !x)
+		Gui, Code:Show
+	else
+		Gui, Code:Hide
+    return
+
+;==== For DEBUGGING ONLY 
+~*Esc::
+;==== End DEBUG
+
+;//ExitRoutine
+	MainGuiClose:
+	ExitRoutine:
+	;//WS_CloseSocket(client)
+	WS_Shutdown()
+	ExitApp

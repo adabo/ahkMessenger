@@ -302,7 +302,7 @@ setChatLog(hwn, a, b, c, d, e){
 			sci.hk().sc.4005(3,rest)
 		}
 		m := "Notice: '" . b . "' has changed their name to '" . c . "'"
-		b := d  ;// Leave this for later use
+		;//b := d  ;Leave this for later use
 		if (b != CURRENTCHAN)
 		return
 		Gui, Main: Default

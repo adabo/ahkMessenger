@@ -1,0 +1,71 @@
+/*
+Author: Bentschi
+Website: http://de.autohotkey.com/forum/viewtopic.php?p=62765 # 62765
+
+WS_Startup (version = 2.0) Started Winsock 2.0 or higher
+WS_Shutdown () Stops Winsock
+WS_Socket (protocol = "TCP", IPVersion = "IPv4") Creates a socket (a new connection)
+WS_CloseSocket (byref socket) Closes a socket
+WS_GetSocketInfo (socket, byref af byref maxsockaddr byref, minsockaddr, byref type, byref protocol) Determines the information that will be automatically set at socket ().
+WS_Listen (socket, backlog = 32) Allows an incoming connection
+WS_Bind (socket, ip, port) Binds the socket to an address or a host
+WS_Accept (socket, byref out_ip, byref out_port) Accepts an incoming connection.
+WS_Connect (socket, ip, port) Connects to an address
+WS_RecvFrom (socket, byref out_ip, byref out_port, byref message, len = 1024, flags = 0) Waits until a message arrives and reads this.
+WS_Recv (socket, byref message len = 1024, flags = 0) Waits until a message arrives and reads this.
+WS_RecvBinary (socket, byref pbuffer len, flags = 0) Waits until a message arrives and reads this (binary).
+WS_RecvFile (socket, file, flags = 0) Saves an incoming message to a file.
+WS_SendTo (socket, ip, port, message, = 0, len = 0, flags) Sends a message.
+WS_Send (socket, message, = 0, len = 0, flags) Sends a message.
+WS_SendBinary (socket, buffer, 0, len = 0, flags) Sends a message (binary).
+WS_SendFile (socket, file, flags = 0) Sends the contents of a file.
+WS_GetAddressFromString (hostname_or_ip) 05/12/2010 - Replaced by WS_GetAddrInfo ()
+WS_GetAddrInfo (socket, hostname_or_ip, port, byref sockaddr, byref sockaddrlen) Converts a host name to an IP and returns the sockaddr structure back.
+WS_EnableBroadcast (socket) Allows for broadcast UDP
+WS_MessageSize (socket) Returns the size in bytes of a message at the entrance.
+WS_HandleEvents (socket, events = "READ CONNECT ACCEPT CLOSE") events to be handled in callbacks.
+WS_Log (str, type = 0) Writes the log
+WS_GetLog () Hast me back the log and clears the buffer.
+WS_GetConsoleInput (allows) the user input when the console is used.
+
+
+Callbacks:
+============================
+WS_OnRead (socket) Will be performed when WS_HandleEvents () is called with "READ" and data available to read
+WS_OnAccept (socket) is executed when WS_HandleEvents () is called with "ACCEPT" and an incoming connection is available.
+WS_OnConnect (socket) is executed when WS_HandleEvents () is called with the "CONNECT" and the socket is already connected.
+WS_OnClose (socket) is executed when WS_HandleEvents () is called with "CLOSE" and the connection is broken.
+
+
+Internal functions:
+============================
+WS_Proc (wParam, lParam, msg, hwnd) If a callback that ... the information to WS_DefProc or WS_On forwards.
+WS_DefProc (socket, event) is a callback that performs the default action for WS_HandleEvents ()
+
+
+Global variables:
+============================
+WS_NOLOG Writes no log
+WS_LOGTOCONSOLE Displays the log to a console.
+WS_LASTRECVMESSAGE Contains the read message also wonder if WS_OnRead () is defined but does not exist or 0 (false) gives back.
+WS_LASTACCEPTEDSOCKET Does the socket of the last accepted connection when WS_OnAccept () is defined but does not exist or 0 (false) gives back.
+WS_LASTACCEPTEDIP Contains the IP address of the last accepted connection when WS_OnAccept () is defined but does not exist or 0 (false) gives back.
+WS_LASTACCEPTEDPORT Contains the port the last accepted connection when WS_OnAccept () is defined but does not exist or 0 (false) gives back.
+WS_LASTCONNECTEDSOCKET Does the socket of the latest connection when WS_OnConnect () is defined but does not exist or 0 (false) gives back.
+Does the closed socket WS_LASTCLOSEDSOCKET also wonder if WS_OnClose () is defined but does not exist or 0 (false) gives back.
+
+
+Notes:
+============================
+- The defined in WS_HandleEvents () callback must not exist in the script.
+In this case takes WS_DefProc () is a standard action.
+WS_DefProc () is also called when one of the callbacks gives back 0 (false).
+
+- Instead of the parameters "ip" can also be a host name to be used. (Ex: "www.someurl.com")
+NOTE: The host name can not contain "http://", contain "http://" or other protocol information.
+Or they are one of the folgenen IP addresses (IPv4) are used:
+"0.0.0.0" for INADDR_ANY or ADDR_ANY
+"127.0.0.1" for INADDR_LOOPBACK or ADDR_LOOPBACK
+"255.255.255.255" for INADDR_BROADCAST or ADDR_BROADCAST
+"255.255.255.255" for INADDR_NONE or ADDR_NONE
+*/
