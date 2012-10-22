@@ -47,4 +47,4 @@ class sci{
 	__Get(a*){
 		return DllCall(this.fn,"Ptr",this.ptr,"UInt",a.1,"Int",0,"Int",0,"Cdecl")
 	}
-}
+} ;

@@ -26,24 +26,12 @@ WS_OnAccept(skt){
     client[skt] := new client(skt)
     nck := client[skt].nick := "Guest" A_TickCount
     WS_Send(skt, "USRN||" nck trm)
-    sleep 100
-    i:=0
-    loop
-    {
-        random, r, 97, 99
-        if (old == r)
-            continue
-        else
-            protJOIN(skt,"#" chr(r),nck)
-        old:=r,i++
-        if (i == 2)
-            break
-    }
+    protJOIN(skt,"#a",nck)
 }
 
 WS_OnRead(skt){
     WS_Recv(skt, c),ClientMessage:=rtrim(c,"`n"),nck := client[skt].nick
-    ;// mb("cl msg", ClientMessage)
+    ;// m("cl msg", ClientMessage)
     if (substr(str:=ClientMessage,2,1) == "W")
     {
         StringReplace, str,str, `r,,All
@@ -72,12 +60,6 @@ protMESG(skt,chn,nck="",msg=""){
         WS_Send(s, "MESG||" chn "||" nck "||" msg trm)
 }
 
-/*
-protNWCN(){
-
-}
-*/
-
 protJOIN(skt,chn,nck){
     client[skt].addChan(chn)
     for n,s in client.chanKeep[chn]
@@ -85,43 +67,55 @@ protJOIN(skt,chn,nck){
 }
 
 protNKCH(skt,nnk,onk){
-    dlist := [],clist:=[],j:=0
     onk := client[skt].nick
     client[skt].nick := nnk
     for i,c in client[skt].chans
         for n in client.chanKeep[c]
-            dlist[++j] := n
-    for i,n in dlist
-        for ii,nn in dlist
-            if (n==clist[ii])
-                break
-            else if (i ==ii)
-                clist[ii] := n,WS_Send(client.getSock(n), "NKCH||" onk "||" nnk trm)
+            list.=n " "
+    sort,list,UD%a_space%
+    list:=trim(list," ")
+    loop,parse,list,%a_space%
+        WS_Send(client.getSock(a_loopfield), "NKCH||" onk "||" nnk trm)
+    client.removeNick(skt,onk,nnk)
     ;// client.chanKeep[chn,this.nick] := this.sock
 }
 
+f3::
+    m(client.getsock(clipboard))
+return
+
 protNWCD(skt,cod,ver){
+    nck := client[skt].nick
     client[skt].addCode(cod,ver)
-    ;// mb(cod)
-    ;// mb("stored code***",client[skt].codes[ver])
-    nck:=client[skt].nick
-    dlist := [],clist:=[],j:=0
-    for i,c in client[skt].chans
-        for n in client.chanKeep[c]
-            dlist[++j] := n
-    for i,n in dlist
-        for ii,nn in dlist
-            if (n==clist[ii])
-                break
-            else if (i ==ii)
-                clist[ii] := n,WS_Send(client.getSock(n), "NWCD||" ver "||" nck "||Notice: """ nck """ submitted new code." trm)
+    for c in client.chanKeep
+        for n, s in client.chanKeep[c]
+            list.=s " "
+    sort,list,UD%A_Space%
+    list:=trim(list," ")
+    loop, parse, list, %A_Space%
+        if A_LoopField
+            WS_Send(A_LoopField, "NWCD||" ver "||" nck "||Notice: """ nck """ submitted new code." trm)
 }
 
 protRQCD(skt,nck,ver){
     WS_Send(skt, "RQCD||" nck "||" ver "||" client[client.getsock(nck)].codes[ver] trm)
 }
 
-WS_Close(){
+WS_OnClose(skt){
+    for c in client.chanKeep
+        for n,s in client.chanKeep[c]
+        {
+            if (s == skt)
+                client.chanKeep[c].Remove(n)
+            if (s != skt)
+                list.=s " "
+        }
+    sort,list,UD%A_Space%
+    loop,parse,list, %a_space%
+        WS_Send(a_loopfield,"DISC||" client[skt].nick)
+    client.sockNick.Remove(client[skt].nick)
+    client[skt]:=""
+    WS_CloseSocket(skt)
 }
 
 getRegexArgs(str, byref a1,byref a2,byref a3 = "",byref a4 = "",byref a5 = ""){
@@ -132,19 +126,19 @@ getRegexArgs(str, byref a1,byref a2,byref a3 = "",byref a4 = "",byref a5 = ""){
     RegexMatch(str, "^" search, a)
 }
 
-mb(x*){
+m(x*){
     for a,b in x
         list.=b "`n"
     MsgBox,% list
 }
 
-tt(x*){
+t(x*){
     for a,b in x
         list.=b "`n"
     ToolTip,% list
 }
 
-db(x*){
+d(x*){
     for a,b in x
         list.=b "|"
     OutputDebug,%list%
@@ -173,6 +167,11 @@ class client {
 
     getSock(nck){
         return client.sockNick[nck]
+    }
+
+    removeNick(skt,onk,nnk){
+        client.sockNick.Remove(onk)
+        client.setGetSock(nnk,skt)
     }
 
     addChan(chn){

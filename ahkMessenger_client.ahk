@@ -149,7 +149,7 @@ WS_OnRead(socket){
 	{
 		if !(ServerMessage := rtrim(A_LoopField,"`r`n"))
 			return
-		;// db("a_index " a_index,ServerMessage)
+		;// d("a_index " a_index,ServerMessage)
 		getRegexArgs(ServerMessage,arg1,arg2,arg3,arg4,arg5)
 		protType := arg1
 
@@ -167,9 +167,9 @@ WS_OnRead(socket){
 		else if (protType == "NWCD")
 			protNWCD(arg2,arg3,arg4)
 			;// (ver,nck,ntc)
-		;// else if (protType == "RQCD")
-			;// protRQCD(arg2,arg3,arg4)
-			;// (nck,ver,cod)
+		else if (protType == "DISC")
+			protDISC(arg2)
+			;// (nck)
 	}
 }
 
@@ -181,7 +181,7 @@ protMESG(chn,nck,msg){
 	static i:=1
 	msg := getTime() " " nck ": " msg
 	user.addMsgToLog(chn,msg)
-	db(i++,chn,nck,msg)
+	d(i++,chn,nck,msg)
 	setChatWin(chn,msg)
 }
 
@@ -206,17 +206,25 @@ protJOIN(chn,nck,lst){
 			channels .= c "|"
 		GuiControl, Main:, SysTabControl321, |%channels%|
 	}
-	Gui, Main: Default
-	LV_Delete()
-	user.getNickList(chn)
-	Loop, Parse, listU, %A_Space%
-		LV_Add("", A_LoopField)
+	setListView(chn)
 	setChatWin(chn,getTime() " Notice: '" nck "' joins the channel")
 }
 
 protNKCH(onk,nnk){
+	if (onk == mainUser.nick)
+	{
+		mainUser.nick := nnk,
+		sci.hk().sc.4005(2,setCase(nnk,"l"))
+	}
 	user.setNickList("","",onk,nnk)
-	sci.hk().sc.4005(2,setCase(nnk,"l"))
+	for c in user.chanNicks
+		for n in user.chanNicks[c]
+				list.=n " "
+	t(list)
+	sort,list,UD%a_space%
+	list:=trim(list," ")
+	list:=RegExReplace(list,mainuser.nick)
+	sci.hk().sc.4005(3,setcase(list,"l"))
 	if !(user.chanNicks[mainUser.curChan,nnk])
 		return
 	Gui, Main: Default
@@ -254,11 +262,15 @@ protNWCD(ver,nck,ntc){
 }
 
 protRQCD(nck,ver,cod){
-	;// mb(nck,ver,cod)
+	;// m(nck,ver,cod)
 	Gui, Code:Default
 	user.addCode(nck,ver,cod) := cod
 	cd.2181(0,cod)
 	cd.2400		
+}
+
+protDISC(nck){
+	user.removeNick(nck)
 }
 
 setChatWin(chn="",msg=""){
@@ -312,7 +324,7 @@ sendCode(){
 getCode(){
 	getCode:
 	Gui, Code:Default
-	tt(a_guievent)
+	t(a_guievent)
 	TV_GetText(item, id := TV_GetSelection()),TV_GetText(p, TV_GetParent(id))
 	if (a_guievent != "DoubleClick" || item + 0 == "")
 		return
@@ -362,7 +374,7 @@ foregroundColorChanger(){
 	col := Dlg_Color(s.2481(style))
 	IniWrite, %col%, color_settings.ini, Fonts, %style%
 	s.2051(style, col)
-	;//mb(style, col)
+	;//m(style, col)
 	setSciColors()
     return
 }
@@ -392,14 +404,17 @@ chanTabSwitcher(chn){
 	sci.hk().sc.2181(0,chatBuilder) ,sci.hk().sc.2160(sci.hk().sc.2006,sci.hk().sc.2006)
 	sc.2160(sc.2006,sc.2006)
 	sci.hk().sc.2171(1)
-
 	GuiControl, Main: ChooseString, SysTabControl321, %chn%
+	setListView(chn)
+	return
+}
+
+setListView(chn){
 	Gui, Main: Default
 	LV_Delete()
 	nicklist := user.getNickList(chn)
 	Loop, Parse, nicklist, %A_Space%
 		LV_Add("", A_LoopField)
-	return
 }
 
 Dlg_Color(Color){
@@ -419,7 +434,7 @@ Dlg_Color(Color){
 setSciColors(){
 	static controlflow, commands, functions, directives, keysbuttons, variables, specialparams
 	/*
-    	db("setSciColors")
+    	d("setSciColors")
 	    cd.2051(0, 0xFF0000)   // Spaces? #?
 	    cd.2051(1, 0x00FF00)   // Comments
 	    cd.2051(2, 0x0000ff)   // Numbers
@@ -523,19 +538,19 @@ getRegexArgs(str, byref a1,byref a2,byref a3 = "",byref a4 = "",byref a5 = ""){
     RegexMatch(str, "^" search, a)
 }
 
-mb(x*){
+m(x*){
 	for a,b in x
 	list.=b "`n"
 	MsgBox,% trim(list,"`n")
 }
 
-tt(x*){
+t(x*){
 	for a,b in x
 	list.=b "`n"
 	ToolTip,% trim(list,"`n")
 }
 
-db(x*){
+d(x*){
 	for a,b in x
 	list.=b "|"
 	OutputDebug,% rTrim(list, "|")
@@ -569,16 +584,18 @@ class user {
 		user.codes[nck,ver]:=cod
 	}
 
-	setNickList(chn,lst,onk="",nnk=""){
+	setNickList(chn="",lst="",onk="",nnk=""){
 		if (nnk)
 		{
 			for c in user.chanNicks
 				for n in user.chanNicks[c]
+				{
 					if (n == onk)
 					{
 						user.chanNicks[c].Remove(n)
 						user.chanNicks[c,nnk]:=1
 					}		
+				}
 		}
 		else
 		{
@@ -592,6 +609,20 @@ class user {
     	for n in user.chanNicks[chn]
     		lst .= n " "
     	return trim(lst," ")
+    }
+
+    removeNick(nck){
+    	for c in user.chanNicks
+    	{
+    		if (c == mainUser.curChan)
+    			setListView(c)
+    		for n in user.chanNicks[c]
+    			if (n == nck)
+    			{
+    				user.chanNicks[c].Remove(n)
+    				continue
+    			}
+    	}
     }
 
     addMsgToLog(chn="",msg=""){
