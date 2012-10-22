@@ -25,17 +25,6 @@
 	global client
 	global MsgInput
 	global TabSwitch
-/*
-	global ALLCHANLOGS := []
-	global CHANLIST := []
-	global chanlogs := []
-	global chansNicks := []
-	global CLIENTCHANS := []
-	global CLIENTNICK
-	global CODE        := []
-	global CURRENTCHAN
-	global EChLog 
-*/
 
 ;//Program start
 	createGUI()  ;
@@ -67,7 +56,7 @@ createGUI(){
 	Gui, Code:Add, Button, x360 y510 w70 h30 HwndBSub gsendCode, Submit
 	Gui, Code:Add, Button, x10 y510 w70 h30 HwndBBGCol gForegroundColorChanger, Foreground
 	Gui, Code:Add, Button, x90 y510 w70 h30 HwndBBFCol gBackgroundColorChanger, Background
-	Gui, Code:Add,Treeview,x540 y10 w110 h490 HwndTVCd grequestCode
+	Gui, Code:Add,Treeview,x540 y10 w110 h490 HwndTVCd ggetCode
 	cd := new sci(CodeWinHWn,"cd",5,5,500,500)
 
 	setupHotkeys(MainWinHwn,CodeWinHWn)  ;
@@ -148,6 +137,14 @@ WS_OnRead(socket){
 	GuiControl, DBG:, Edit1, %dbugWin%
 	;//=====================
 
+    if (substr(str:=ServerMessage,2,1) == "Q")
+    {
+        StringReplace, str,str, `r,,All
+        getRegexArgs(str,arg1,arg2,arg3,arg4)
+        protRQCD(arg2,arg3,arg4)
+        return
+    }	
+
 	Loop, Parse, ServerMessage, `n
 	{
 		if !(ServerMessage := rtrim(A_LoopField,"`r`n"))
@@ -168,11 +165,11 @@ WS_OnRead(socket){
 			statusBarSetText(arg2, 1),protUSRN(arg2)
 			;// (nck)
 		else if (protType == "NWCD")
-			protNWCD(arg2,arg3)
-			;// (nck,ver)
-		else if (protType == "RQCD")
-			protRQCD(arg3,arg4)
-			;// (ver,nck,cod)
+			protNWCD(arg2,arg3,arg4)
+			;// (ver,nck,ntc)
+		;// else if (protType == "RQCD")
+			;// protRQCD(arg2,arg3,arg4)
+			;// (nck,ver,cod)
 	}
 }
 
@@ -232,11 +229,13 @@ protNKCH(onk,nnk){
 	setChatWin(chn,note)
 }
 
-protNWCD(nck,ver){
-	if (nck == CLIENTNICK)
+protNWCD(ver,nck,ntc){
+	if (nck == mainUser.nick)
 		return
+	setChatWin("",ntc)
+	user.addMsgToLog("",ntc)
 	Gui, Code:Default
-	id := 0
+	id := 0  ;//Need 0 val to start TV_GetNext from top
 	loop % TV_GetCount()  ;//Find if the nickname exists in treeview
 	{
 		id := TV_GetNext(id,  "Full")
@@ -254,23 +253,20 @@ protNWCD(nck,ver){
 	}
 }
 
-protRQCD(nck,cod){
+protRQCD(nck,ver,cod){
+	;// mb(nck,ver,cod)
 	Gui, Code:Default
-	id := 0
-	loop % TV_GetCount()  ;//Find if the nickname exists in treeview
-	{
-		id := TV_GetNext(id,  "Full")
-		TV_GetText(itemtext, id)
-		if (itemtext == nck)
-			break
-		itemtext := ""
-	}
-	CODE[id] := cod
+	user.addCode(nck,ver,cod) := cod
 	cd.2181(0,cod)
 	cd.2400		
 }
 
-setChatWin(chn,msg){
+setChatWin(chn="",msg=""){
+	if !(chn)  ;//If no channel given, broadcast to all chans
+	{
+		for i,c in mainUser.chans
+			rtrim(user.chanLogs[c],"`n")
+	}
 	if (chn != mainUser.curChan)
 		return
 	sc:=sci.hk().sc
@@ -301,27 +297,26 @@ sendMessage(ctl){
 
 sendCode(){
 	sendCode:
-	static i := 1
+	static i := 0
 	static p1
 
 	Gui, Code:Default
-	EdCode := cd.gettext()
-	WS_Send(client, "NWCD||" i "||" EdCode)
+	user.addCode(nck:=mainUser.nick,++i,cd.gettext())
+	WS_Send(client, "NWCD||" i "||" user.codes[nck,i])
 	if (i < 2)
-		p1 := TV_Add(CLIENTNICK)
+		p1 := TV_Add(mainUser.nick)
 	c := TV_Add(i,p1)
-	CODE[c] := EdCode
-	i++
 	return
 }
 
-requestCode(){
-	requestCode:
+getCode(){
+	getCode:
 	Gui, Code:Default
-	TV_GetText(item, id := TV_GetSelection()), TV_GetText(p, TV_GetParent(id))
+	tt(a_guievent)
+	TV_GetText(item, id := TV_GetSelection()),TV_GetText(p, TV_GetParent(id))
 	if (a_guievent != "DoubleClick" || item + 0 == "")
 		return
-	else if (c := CODE[id])
+	else if (c := mainUser.codes[item])
 	{
 		cd.2181(0,c)
 		cd.2400
@@ -569,9 +564,9 @@ class user {
 		user.setNickList()
 	}
 
-	addCode(cod){
-		static codes:=[],i:=1
-		this.codes[i++]:=cod
+	addCode(nck,ver,cod){
+		static codes:=[]
+		user.codes[nck,ver]:=cod
 	}
 
 	setNickList(chn,lst,onk="",nnk=""){
@@ -599,7 +594,12 @@ class user {
     	return trim(lst," ")
     }
 
-    addMsgToLog(chn,msg){
+    addMsgToLog(chn="",msg=""){
+    	if !(chn)
+    	{
+    		for i,c in mainUser.chans
+    			user.chanLogs[c] .= msg "`n"
+    	}
     	user.chanLogs[chn] .= msg "`n"
     }
 } ;

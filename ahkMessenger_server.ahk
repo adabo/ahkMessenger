@@ -7,13 +7,19 @@
 
 ;// Variables
     WS_LOGTOCONSOLE := 1
-    ;// global trm      := "!"
     global trm      := chr(13) chr(10)
-    ;// trm:=chr(4)
 
 ;// Program start
     initialize_WS()  ;
 return
+
+initialize_WS(){
+    WS_Startup()
+    server := WS_Socket("TCP", "IPv4")
+    WS_Bind(server, "0.0.0.0", "12345")
+    WS_Listen(server)
+    WS_HandleEvents(server, "ACCEPT READ CLOSE")
+}
 
 WS_OnAccept(skt){
     skt := WS_Accept(skt, client_ip, client_port)
@@ -35,32 +41,29 @@ WS_OnAccept(skt){
     }
 }
 
-initialize_WS(){
-    WS_Startup()
-    server := WS_Socket("TCP", "IPv4")
-    WS_Bind(server, "0.0.0.0", "12345")
-    WS_Listen(server)
-    WS_HandleEvents(server, "ACCEPT READ CLOSE")
-}
-
 WS_OnRead(skt){
     WS_Recv(skt, c),ClientMessage:=rtrim(c,"`n"),nck := client[skt].nick
+    ;// mb("cl msg", ClientMessage)
+    if (substr(str:=ClientMessage,2,1) == "W")
+    {
+        StringReplace, str,str, `r,,All
+        getRegexArgs(str,arg1,arg2,arg3)
+        protNWCD(skt,arg3,arg2)
+        return
+    }
     Loop, Parse, ClientMessage, `n
     {
         if !(ClientMessage := rtrim(A_LoopField,"`r`n"))
             return
         getRegexArgs(ClientMessage,arg1,arg2,arg3,arg4,arg5),protType := arg1
-        ;// mb(arg1,arg2,arg3,arg4,arg5)
         if      (protType == "MESG")
             protMESG(skt,arg2,nck,arg3)
-        else if (protType == "NWCN")
-            protNWCN()
         else if (protType == "JOIN")
             protJOIN(skt,arg2,nck)
         else if (protType == "NKCH")
             protNKCH(skt,arg2,nck)
-        else if (protType == "NWCD")
-            protNWCD()
+        else if (protType == "RQCD")
+            protRQCD(skt,arg2,arg3)
     }
 }
 
@@ -69,9 +72,11 @@ protMESG(skt,chn,nck="",msg=""){
         WS_Send(s, "MESG||" chn "||" nck "||" msg trm)
 }
 
+/*
 protNWCN(){
-    
+
 }
+*/
 
 protJOIN(skt,chn,nck){
     client[skt].addChan(chn)
@@ -91,19 +96,35 @@ protNKCH(skt,nnk,onk){
             if (n==clist[ii])
                 break
             else if (i ==ii)
-                clist[ii] := n,WS_Send(client.getSock(n), "NKCH||" onk "||" nnk)
+                clist[ii] := n,WS_Send(client.getSock(n), "NKCH||" onk "||" nnk trm)
     ;// client.chanKeep[chn,this.nick] := this.sock
 }
 
-protNWCD(){
-    
+protNWCD(skt,cod,ver){
+    client[skt].addCode(cod,ver)
+    ;// mb(cod)
+    ;// mb("stored code***",client[skt].codes[ver])
+    nck:=client[skt].nick
+    dlist := [],clist:=[],j:=0
+    for i,c in client[skt].chans
+        for n in client.chanKeep[c]
+            dlist[++j] := n
+    for i,n in dlist
+        for ii,nn in dlist
+            if (n==clist[ii])
+                break
+            else if (i ==ii)
+                clist[ii] := n,WS_Send(client.getSock(n), "NWCD||" ver "||" nck "||Notice: """ nck """ submitted new code." trm)
+}
+
+protRQCD(skt,nck,ver){
+    WS_Send(skt, "RQCD||" nck "||" ver "||" client[client.getsock(nck)].codes[ver] trm)
 }
 
 WS_Close(){
 }
 
 getRegexArgs(str, byref a1,byref a2,byref a3 = "",byref a4 = "",byref a5 = ""){
-    ;// Find terminator code "¥"    
     RegexReplace(str, "\|\|", "", cnt)
     loop, %cnt%
         search.="(.*)\|\|"
@@ -139,6 +160,11 @@ class client {
     __Set(key,val){
         if (key == "nick")
             client.setGetSock(val,this.sock)
+    }
+
+    addCode(cod,ver){
+        static codes:=[]
+        this.codes[ver]:=cod
     }
 
     setGetSock(nck,skt){
