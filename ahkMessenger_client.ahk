@@ -130,7 +130,7 @@ initWS(){
 	{
 		WS_Startup()
 		client := WS_Socket("TCP", "IPv4")
-		WS_Connect(client, "SERVER-IP-GOES-HERE", "12345")
+		WS_Connect(client, "SERVER-IP-GOES-HERE", "PORT-HERE")
 		WS_HandleEvents(client, "READ")
 		GuiControl, Main:, Button2, Disconnect
 	}
