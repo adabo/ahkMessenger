@@ -1,3 +1,10 @@
+/*
+    ahkMessenger v0.33
+    author: adabo
+    email: abel4@msn.com
+*/
+
+
 ;// Includes
     #Include lib\ws.ahk
 
@@ -31,7 +38,6 @@ WS_OnAccept(skt){
 
 WS_OnRead(skt){
     WS_Recv(skt, c),ClientMessage:=rtrim(c,"`n"),nck := client[skt].nick
-    ;// m("cl msg", ClientMessage)
     if (substr(str:=ClientMessage,2,1) == "W")
     {
         StringReplace, str,str, `r,,All
@@ -61,15 +67,21 @@ protMESG(skt,chn,nck="",msg=""){
 }
 
 protJOIN(skt,chn,nck){
+    if (client[skt].chans[chn])
+    {
+        WS_Send(skt, "JOIN||" chn "||" "||||You are already in '" chn "'")
+        return
+    }
     client[skt].addChan(chn)
     for n,s in client.chanKeep[chn]
         WS_Send(s, "JOIN||" chn "||" nck "||" client.getNkList(chn) trm)
 }
 
 protNKCH(skt,nnk,onk){
+    StringReplace,nnk,nnk,%a_space%,,All
     onk := client[skt].nick
     client[skt].nick := nnk
-    for i,c in client[skt].chans
+    for c in client[skt].chans
         for n in client.chanKeep[c]
             list.=n " "
     sort,list,UD%a_space%
@@ -77,12 +89,7 @@ protNKCH(skt,nnk,onk){
     loop,parse,list,%a_space%
         WS_Send(client.getSock(a_loopfield), "NKCH||" onk "||" nnk trm)
     client.removeNick(skt,onk,nnk)
-    ;// client.chanKeep[chn,this.nick] := this.sock
 }
-
-f3::
-    m(client.getsock(clipboard))
-return
 
 protNWCD(skt,cod,ver){
     nck := client[skt].nick
@@ -111,6 +118,7 @@ WS_OnClose(skt){
                 list.=s " "
         }
     sort,list,UD%A_Space%
+    list:=trim(list," ")
     loop,parse,list, %a_space%
         WS_Send(a_loopfield,"DISC||" client[skt].nick)
     client.sockNick.Remove(client[skt].nick)
@@ -153,7 +161,7 @@ class client {
     
     __Set(key,val){
         if (key == "nick")
-            client.setGetSock(val,this.sock)
+            client.setSockNick(val,this.sock)
     }
 
     addCode(cod,ver){
@@ -161,7 +169,7 @@ class client {
         this.codes[ver]:=cod
     }
 
-    setGetSock(nck,skt){
+    setSockNick(nck,skt){
         client.sockNick[nck]:=skt
     }
 
@@ -171,12 +179,17 @@ class client {
 
     removeNick(skt,onk,nnk){
         client.sockNick.Remove(onk)
-        client.setGetSock(nnk,skt)
+        client.setSockNick(nnk,skt)
+        for c in client[skt].chans
+        {
+            client.chanKeep[c].Remove(onk)
+            client.chanKeep[c,nnk] := skt
+        }
     }
 
     addChan(chn){
-    	static chans:=[],i:=1
-    	this.chans[i++] := chn
+    	static chans:=[]
+    	this.chans[chn] := 1
     	client.chanKeep[chn,this.nick] := this.sock
     }
 
@@ -186,10 +199,8 @@ class client {
     	return trim(list," ")
     }
 } ;
-/*
-f1::
-*/
-~*Esc::
+
+;// ~*Esc::
 ExitRoutine:
     WS_CloseSocket(server)  ;//
     WS_Shutdown()

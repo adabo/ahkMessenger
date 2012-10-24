@@ -398,7 +398,7 @@ WS_SendTo(socket, ip, port, message, len=0, flags=0)
 WS_Recv(socket, byref message, len=0, flags=0)
 {
   static MSG_PEEK := 2, MSG_OOB := 1, MSG_WAITALL := 8
-  
+
   Ptr := (A_PtrSize) ? "uptr" : "uint"
   fl := 0
   Loop, parse, flags, % " "
