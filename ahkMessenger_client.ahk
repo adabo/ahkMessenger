@@ -21,12 +21,7 @@
 	
 ;// Super Globals
 	global trm      := chr(13) chr(10)
-	global mainUser
-	global cd,sc,input
-	global client
-	global MsgInput
-	global TabSwitch
-	global SwitchSciChn
+	global mainUser,cd,sc,input,client,MsgInput,TabSwitch,SwitchSciChn,ServIP,ServPt
 
 ;// Program start
 	createGUI(mHwn,cHwn) ;
@@ -49,11 +44,22 @@ createGUI(byref MainWinHwn,byref CodeWinHWn){
 	Gui, Main:Add, Tab,      x10  y10  w550 h330 HwndTTSw -Wrap vTabSwitch gchanTabSwitcher
 	Gui, Main:Font, s8, Courier New
 	Gui, Main:Add, StatusBar, gstatusBarClick
-	SB_SetParts(120,80,80)
+	SB_SetParts(120,100,80)
+	SB_SetText("Settings...",2)
+
 	;// SB_SetIcon("Shell32.dll",3,1)
 	sc := new sci(MainWinHwn,"sc",20,50,520,270)
 	input:=new sci(MainWinHwn,"input",20,370,550,50)
-	
+
+	;// Setup Connection settings window
+	Gui, Connect:+Toolwindow
+	Gui, Connect:Add,Edit,x10 y10 w110 h20 vServIP gConnectionSettings -WantReturn
+	Gui, Connect:Add,Edit,x140 y10 w70 h20 vServPt gConnectionSettings -WantReturn,12345
+	Gui, Connect:Add,Text,x10 y40 w90 h30,Server IP
+	Gui, Connect:Add,Text,x140 y40 w70 h30,Server Port
+	Gui, Connect:Add,Button, x0 y0 w0 h0 +Default ginitWS
+	;// Gui, Connect:Add,Checkbox,x10 y70 w140 h30,Show this dialag again?
+		
 	;// Setup Code share window
 	Gui, Code:+Resize +HwndCodeWinHWn
 	Gui, Code:Add, Button, x360 y510 w70 h30 HwndBSub gsendCode, Submit
@@ -62,7 +68,7 @@ createGUI(byref MainWinHwn,byref CodeWinHWn){
 	Gui, Code:Add,Treeview,x540 y10 w110 h490 HwndTVCd ggetCode
 	cd := new sci(CodeWinHWn,"cd",5,5,500,500)
 
-	setSciControls()
+	setSciControls()d
 	attachControls(input.hwnd, "w y r"
 		             ,sc.hwnd, "w h r"
 		             ,cd.hwnd, "w h r"
@@ -118,6 +124,15 @@ setHotkeys(MainWinHwn,CodeWinHWn){
 	Hotkey, ^Enter, sendCode, On
 }
 
+ConnectionSettings(){
+	ConnectionSettings:
+	Gui,Connect:Submit,NoHide
+	;// m(ServIP,ServPt)
+	;// ServIP
+	;// ServPt
+	return
+}
+
 initWS(){
 	initWS:
 	if (client)  ;// Means you are reconnecting. Flush all globals.
@@ -126,11 +141,14 @@ initWS(){
 		mainUser:=""
 		GuiControl, Main:, Button2, Connect
 	}
+	else if (!ServIP || !ServPt)
+		statusBarClick(2)
 	else
 	{
+		Gui,Connect:Hide
 		WS_Startup()
 		client := WS_Socket("TCP", "IPv4")
-		WS_Connect(client, "SERVER-IP-GOES-HERE", "PORT-HERE")
+		WS_Connect(client, ServIP, ServPt)
 		WS_HandleEvents(client, "READ")
 		GuiControl, Main:, Button2, Disconnect
 	}
@@ -435,11 +453,15 @@ foregroundColorChanger(){
     return
 }
 
-statusBarClick(){
+statusBarClick(prt){
 	statusBarClick:
-	Gui,DBG:Default
+	CoordMode,Mouse,Screen
+	MouseGetPos,x,y
+	;// Gui,DBG:Default
 	if (A_EventInfo == 4)
 		Gui, DBG:Show
+	else if (A_EventInfo == 2 || prt == 2)
+		Gui, Connect:Show, x%x% y%y%
 	return
 }
 
